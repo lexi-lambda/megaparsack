@@ -1,11 +1,10 @@
 #lang racket/base
 
 (require racket/require
-         (multi-in data [collection functor applicative monad either])
-         (prefix-in d: data/collection)
+         (multi-in data [functor applicative monad either])
          (prefix-in d: data/applicative)
          match-plus
-         (multi-in racket [contract function match port stream string])
+         (multi-in racket [contract function list match port stream string])
          (prefix-in r: racket/base)
          (submod data/applicative coerce-delayed))
 
@@ -16,7 +15,7 @@
           [parser? (any/c . -> . boolean?)]
           [parser/c (contract? contract? . -> . contract?)]
 
-          [rename do-parse parse (parser?* (sequenceof token?) . -> . either?)]
+          [rename do-parse parse (parser?* (listof token?) . -> . either?)]
           [parse-error->string (message? . -> . string?)]
           [parse-result! (either? . -> . any/c)]
 
@@ -42,7 +41,7 @@
   #:methods gen:custom-write
   [(define/match* (write-proc (message srcloc unexpected expected) out mode)
      (fprintf out (if mode "(message ~v ~v ~v)" "(message ~a ~a ~a)")
-              srcloc unexpected (sequence->list expected)))])
+              srcloc unexpected expected))])
 
 (define empty-srcloc (srcloc #f #f #f #f #f))
 (define empty-message (message empty-srcloc #f '()))
@@ -94,7 +93,7 @@
 (define (parser/c input/c output/c)
   (or/c (pure/c output/c)
         (let* ([tok/c (struct/c token input/c srcloc?)]
-               [seq/c (sequenceof tok/c #:chaperone? #t)]
+               [seq/c (listof tok/c)]
                [reply/c (or/c error? (struct/c ok output/c seq/c message?))])
           (struct/c parser (-> seq/c (or/c (struct/c consumed reply/c)
                                            (struct/c empty reply/c)))))))
@@ -113,7 +112,7 @@
    (thunk (display (or (srcloc->string srcloc) "?"))
           (display ": parse error")
 
-          (when (and (not unexpected) (d:empty? expected))
+          (when (and (not unexpected) (null? expected))
             (display ";")
             (newline)
             (display " unknown parse error"))
@@ -123,12 +122,12 @@
             (display "  unexpected: ")
             (display unexpected))
 
-          (unless (d:empty? expected)
+          (unless (null? expected)
             (newline)
             (display "  expected: ")
             (display (if (< (length expected) 3)
-                         (string-join (sequence->list expected) " or ")
-                         (string-join (sequence->list expected) ", " #:before-last ", or ")))))))
+                         (string-join expected " or ")
+                         (string-join expected ", " #:before-last ", or ")))))))
 
 (struct exn:fail:megaparsack exn:fail (srcloc unexpected expected))
 
@@ -180,8 +179,9 @@
                                         [consumed                      consumed])]
        [consumed                      consumed]))))
 
-(define (or/p p . ps)
-  (foldl <or> p ps))
+(define (or/p . ps)
+  (let-values ([(ps p) (split-at ps (sub1 (length ps)))])
+    (foldr <or> (first p) ps)))
 
 ;; lookahead (try/p)
 ;; ---------------------------------------------------------------------------------------------------
@@ -199,9 +199,9 @@
 (define (satisfy/p proc)
   (parser
    (match-lambda
-     [(sequence (token (? proc c) loc) cs ...) (consumed (ok c cs (message loc #f '())))]
-     [(sequence (token c loc) _ ...)           (empty (error (message loc c '())))]
-     [_                                        (empty (error (message empty-srcloc "end of input" '())))])))
+     [(list (token (? proc c) loc) cs ...) (consumed (ok c cs (message loc #f '())))]
+     [(list (token c loc) _ ...)           (empty (error (message loc c '())))]
+     [_                                    (empty (error (message empty-srcloc "end of input" '())))])))
 
 ;; parser annotation (label/p & hidden/p)
 ;; ---------------------------------------------------------------------------------------------------

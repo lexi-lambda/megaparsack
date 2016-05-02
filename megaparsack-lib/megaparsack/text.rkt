@@ -1,13 +1,12 @@
 #lang curly-fn racket/base
 
 (require data/applicative
-         data/collection
          data/monad
          megaparsack/base
          megaparsack/combinator
          racket/contract
-         racket/function
-         racket/stream)
+         racket/list
+         racket/function)
 
 (provide (contract-out
           [parse-string (->* [parser? string?] [any/c] any/c)]
@@ -23,14 +22,14 @@
   (parse p (let loop ([pos 1]
                       [line 1]
                       [col 0]
-                      [input (string->immutable-string input)])
+                      [input (string->list input)])
              (if (empty? input)
-                 empty-stream
+                 '()
                  (let ([c (first input)])
-                   (stream-cons (token c (srcloc name line col pos 1))
-                                (if (char=? c #\newline)
-                                    (loop (add1 pos) (add1 line) 0 (rest input))
-                                    (loop (add1 pos) line (add1 col) (rest input)))))))))
+                   (cons (token c (srcloc name line col pos 1))
+                         (if (char=? c #\newline)
+                             (loop (add1 pos) (add1 line) 0 (rest input))
+                             (loop (add1 pos) line (add1 col) (rest input)))))))))
 
 (define (char/p c) (label/p (format "'~a'" c) (satisfy/p #{char=? c})))
 (define letter/p   (label/p "letter" (satisfy/p char-alphabetic?)))
