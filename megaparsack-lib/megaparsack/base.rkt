@@ -4,13 +4,13 @@
          (multi-in data [functor applicative monad either])
          (prefix-in d: data/applicative)
          match-plus
-         (multi-in racket [contract function list match port stream string])
+         (multi-in racket [contract function list match port string])
          (prefix-in r: racket/base)
          (submod data/applicative coerce-delayed))
 
 (provide lazy/p
          (contract-out
-          [struct token    ([value any/c] [srcloc srcloc?])]
+          [struct token ([value any/c] [srcloc srcloc?])]
 
           [parser? (any/c . -> . boolean?)]
           [parser/c (contract? contract? . -> . contract?)]
