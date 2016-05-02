@@ -15,9 +15,12 @@
           [parser? (any/c . -> . boolean?)]
           [parser/c (contract? contract? . -> . contract?)]
 
-          [rename do-parse parse (parser?* (listof token?) . -> . either?)]
+          [rename do-parse parse (parser?* (listof token?) . -> . (either/c message? any/c))]
           [parse-error->string (message? . -> . string?)]
-          [parse-result! (either? . -> . any/c)]
+          [parse-result! ((either/c message? any/c) . -> . any/c)]
+          [struct (exn:fail:megaparsack exn:fail)
+            ([message any/c] [continuation-marks any/c]
+             [srcloc srcloc?] [unexpected any/c] [expected (listof string?)])]
 
           [void/p (parser/c any/c void?)]
           [or/p (parser?* parser?* ... . -> . parser?*)]
@@ -133,7 +136,7 @@
                          (string-join expected " or ")
                          (string-join expected ", " #:before-last ", or ")))))))
 
-(struct exn:fail:megaparsack exn:fail (srcloc unexpected expected))
+(struct exn:fail:megaparsack exn:fail (srcloc unexpected expected) #:transparent)
 
 (define/match (parse-result! result)
   [((right result)) result]
