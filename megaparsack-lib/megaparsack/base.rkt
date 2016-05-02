@@ -92,10 +92,14 @@
 
 (define (parser/c input/c output/c)
   (or/c (pure/c output/c)
-        (let* ([tok/c (struct/c token input/c srcloc?)]
-               [seq/c (listof tok/c)]
+        (let* (; Ideally, seq/c would be a more expressive contract, something like this:
+               ;   (listof (struct/c token input/c srcloc?))
+               ; but this turns out to be horribly slow in practice. Hopefully there is a better way
+               ; to protect the input/c invariant without killing performance (should try using a
+               ; custom contract).
+               [seq/c any/c]
                [reply/c (or/c error? (struct/c ok output/c seq/c message?))])
-          (struct/c parser (-> seq/c (or/c (struct/c consumed reply/c)
+          (struct/c parser (-> any/c (or/c (struct/c consumed reply/c)
                                            (struct/c empty reply/c)))))))
 
 (define (do-parse p input)
