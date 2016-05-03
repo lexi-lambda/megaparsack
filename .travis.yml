@@ -1,0 +1,27 @@
+language: c
+
+sudo: false
+
+env:
+  global:
+    - RACKET_DIR: '~/racket'
+  matrix:
+    - RACKET_VERSION: 6.5
+    - RACKET_VERSION: HEAD
+
+before_install:
+  - git clone https://github.com/lexi-lambda/travis-racket.git
+  - cat travis-racket/install-racket.sh | bash
+  - export PATH="${RACKET_DIR}/bin:${PATH}"
+
+install:
+  - raco pkg install --auto --link
+      $TRAVIS_BUILD_DIR/megaparsack-lib
+      $TRAVIS_BUILD_DIR/megaparsack-parser
+      $TRAVIS_BUILD_DIR/megaparsack-doc
+      $TRAVIS_BUILD_DIR/megaparsack-test
+  - raco pkg install --auto cover cover-coveralls
+
+script:
+  - raco test -ep megaparsack-lib megaparsack-parser megaparsack-test
+  - raco cover -bf coveralls -d $TRAVIS_BUILD_DIR/coverage -p megaparsack-lib megaparsack-parser megaparsack-test
