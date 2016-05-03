@@ -89,6 +89,10 @@ Produces a parser that attempts @racket[parser] zero or more times and returns a
 @defproc[(some/p [parser parser?]) parser?]{
 Produces a parser that attempts @racket[parser] one or more times and returns a list of the results.}
 
+@defproc[(repeat/p [n exact-nonnegative-integer?] [parser parser?]) (parser/c any/c list?)]{
+Produces a parser that attempts @racket[parser] @emph{exactly} @racket[n] times and returns a list of
+the results.}
+
 @defproc[(==/p [v any/c] [=? (any/c any/c . -> . any/c) equal?]) parser?]{
 Produces a parser that succeeds when a single token is equal to @racket[v], as determined by
 @racket[=?]. Like @racket[satisfy/p], it consumes a single token upon success but does not consume
@@ -115,6 +119,10 @@ Parses @racket[str] using @racket[parser], which must consume character tokens. 
 
 @defproc[(char/p [c char?]) (parser/c char? char?)]{
 Parses a single token that is equal to @racket[c].}
+
+@defproc[(char-ci/p [c char?]) (parser/c char? char?)]{
+Parses a single token that is case-insensitively equal to @racket[c], as determined by
+@racket[char-ci=?].}
 
 @defthing[letter/p (parser/c char? char?)]{
 Parses an alphabetic letter, as determined by @racket[char-alphabetic?].}

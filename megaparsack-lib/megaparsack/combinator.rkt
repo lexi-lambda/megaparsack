@@ -8,6 +8,7 @@
 (provide (contract-out
           [many/p (parser? . -> . parser?)]
           [some/p (parser? . -> . parser?)]
+          [repeat/p (exact-nonnegative-integer? parser? . -> . (parser/c any/c list?))]
           [==/p (->* [any/c] [(any/c any/c . -> . any/c)] parser?)]
           [many/sep/p (parser? parser? . -> . parser?)]
           [some/sep/p (parser? parser? . -> . parser?)]))
@@ -17,6 +18,11 @@
 
 (define (some/p p)
   ((pure cons) p (lazy/p (many/p p))))
+
+(define (repeat/p n p)
+  (if (zero? n)
+      (pure '())
+      ((pure cons) p (repeat/p (sub1 n) p))))
 
 (define (==/p v [=? equal?])
   (satisfy/p #{=? v}))
