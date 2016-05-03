@@ -6,7 +6,7 @@
   '("base"
     "curly-fn"
     "collections"
-    "functional-lib"
+    ["functional-lib" #:version "0.5"]
     "match-plus"))
 (define build-deps
   '())
