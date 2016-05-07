@@ -12,10 +12,13 @@
 
 (provide lazy/p
          (contract-out
+          [struct syntax-box ([datum any/c] [srcloc srcloc?])]
+
           [parser? (any/c . -> . boolean?)]
           [parser/c (contract? contract? . -> . contract?)]
 
-          [rename do-parse parse (parser?* (listof syntax?) . -> . (either/c message? any/c))]
+          [rename parse-datum parse (parser?* (listof syntax-box?) . -> . (either/c message? any/c))]
+          [parse-syntax (parser?* (listof syntax-box?) . -> . (either/c message? syntax?))]
           [parse-error->string (message? . -> . string?)]
           [parse-result! ((either/c message? any/c) . -> . any/c)]
           [struct (exn:fail:megaparsack exn:fail)
@@ -32,6 +35,12 @@
 ;; supporting types
 ;; ---------------------------------------------------------------------------------------------------
 
+(struct syntax-box (datum srcloc)
+  #:transparent
+  #:methods gen:functor
+  [(define/match* (map f (syntax-box datum srcloc))
+     (syntax-box (f datum) srcloc))])
+
 (struct consumed (reply) #:transparent)
 (struct empty (reply) #:transparent)
 
@@ -47,36 +56,20 @@
 (define empty-srcloc (srcloc #f #f #f #f #f))
 (define empty-message (message empty-srcloc #f '()))
 
-;; syntax object pattern-matching
-;; ---------------------------------------------------------------------------------------------------
-
-(define (syntax->values stx)
-  (values (syntax-e stx)
-          (srcloc (syntax-source stx)
-                  (syntax-line stx)
-                  (syntax-column stx)
-                  (syntax-position stx)
-                  (syntax-span stx))))
-
-(define-match-expander syntax
-  (syntax-parser
-    [(_ datum srcloc)
-     #'(? syntax? (app syntax->values datum srcloc))]))
-
 ;; core primitives
 ;; ---------------------------------------------------------------------------------------------------
 
 (struct parser (proc)
   #:methods gen:functor
   [(define (map f p)
-     (parser (compose (match-lambda [(consumed (ok v rest message)) (consumed (ok (f v) rest message))]
-                                    [(empty (ok v rest message))    (empty (ok (f v) rest message))]
+     (parser (compose (match-lambda [(consumed (ok v rest message)) (consumed (ok (map f v) rest message))]
+                                    [(empty (ok v rest message))    (empty (ok (map f v) rest message))]
                                     [error                          error])
                       (parser-proc p))))]
 
   #:methods gen:applicative
   [(define (pure _ x)
-     (parser (λ (input) (empty (ok x input empty-message)))))
+     (parser (λ (input) (empty (ok (syntax-box x empty-srcloc) input empty-message)))))
 
    (define (apply p ps)
      (do [f  <- p]
@@ -88,13 +81,16 @@
      (parser
       (λ (input)
         (match (parse p input)
-          [(empty    (ok x rest message)) (match (parse (f x) rest)
-                                            [(empty reply) (empty (merge-message/reply message reply))]
-                                            [consumed      consumed])]
-          [(consumed (ok x rest message)) (consumed (match (parse (f x) rest)
-                                                      [(consumed reply) reply]
-                                                      [(empty    reply) (merge-message/reply message reply)]))]
-          [error                          error]))))])
+          [(empty (ok (and foo (syntax-box x _)) rest message))
+           (match (parse (f x) rest)
+             [(empty reply) (empty (merge-message/reply message reply))]
+             [consumed      consumed])]
+          [(consumed (ok (and foo (syntax-box x srcloc)) rest message))
+           (consumed (match (parse (f x) rest)
+                       [(consumed (ok stx rest message)) (ok (merge-syntax-box/srcloc stx srcloc) rest message)]
+                       [(consumed error)                 error]
+                       [(empty    reply)                 (merge-message/reply message reply)]))]
+          [error error]))))])
 
 (define (parser?* v)
   (or (parser? v) (pure? v)))
@@ -115,11 +111,12 @@
                ; to protect the input/c invariant without killing performance (should try using a
                ; custom contract).
                [seq/c any/c]
-               [reply/c (or/c error? (struct/c ok output/c seq/c message?))])
+               [boxed-output/c (struct/c syntax-box output/c srcloc?)]
+               [reply/c (or/c error? (struct/c ok boxed-output/c seq/c message?))])
           (struct/c parser (-> any/c (or/c (struct/c consumed reply/c)
                                            (struct/c empty reply/c)))))))
 
-(define (do-parse p input)
+(define (parse-syntax-box p input)
   (match (parse p input)
     [(or (consumed (ok x _ _))
          (empty    (ok x _ _)))
@@ -127,6 +124,12 @@
     [(or (consumed (error message))
          (empty    (error message)))
      (left message)]))
+
+(define (parse-syntax p input)
+  (map syntax-box->syntax (parse-syntax-box p input)))
+
+(define (parse-datum p input)
+  (map syntax-box-datum (parse-syntax-box p input)))
 
 (define/match* (parse-error->string (message srcloc unexpected expected))
   (with-output-to-string
@@ -158,6 +161,27 @@
    (raise (exn:fail:megaparsack (parse-error->string message)
                                 (current-continuation-marks)
                                 srcloc unexpected expected))])
+
+;; syntax object utilities
+;; ---------------------------------------------------------------------------------------------------
+
+(define/match* (syntax-box->syntax (syntax-box datum (srcloc name line col pos span)))
+  (datum->syntax #f datum (list name line col pos span)))
+
+(define (merge-srclocs srcloc-a srcloc-b)
+  (match (sort (list srcloc-a srcloc-b) < #:key (λ (x) (or (srcloc-position x) -1)))
+    [(list (srcloc name-a line-a col-a pos-a span-a) (srcloc name-b line-b col-b pos-b span-b))
+     (srcloc (or name-a name-b)
+             (or line-a line-b)
+             (or col-a col-b)
+             (or pos-a pos-b)
+             (cond [(and pos-a pos-b span-b) (+ (- pos-b pos-a) span-b)]
+                   [(and pos-a span-a)       span-a]
+                   [(and pos-b span-b)       span-b]
+                   [else                     (or span-a span-b)]))]))
+
+(define/match* (merge-syntax-box/srcloc (syntax-box datum srcloc-b) srcloc-a)
+  (syntax-box datum (merge-srclocs srcloc-a srcloc-b)))
 
 ;; error message reconciliation
 ;; ---------------------------------------------------------------------------------------------------
@@ -220,9 +244,9 @@
 (define (satisfy/p proc)
   (parser
    (match-lambda
-     [(list (syntax (? proc c) loc) cs ...) (consumed (ok c cs (message loc #f '())))]
-     [(list (syntax c loc) _ ...)           (empty (error (message loc c '())))]
-     [_                                     (empty (error (message empty-srcloc "end of input" '())))])))
+     [(list (and stx (syntax-box (? proc) loc)) cs ...) (consumed (ok stx cs (message loc #f '())))]
+     [(list (syntax-box c loc) _ ...)                   (empty (error (message loc c '())))]
+     [_                                                 (empty (error (message empty-srcloc "end of input" '())))])))
 
 ;; parser annotation (label/p & hidden/p)
 ;; ---------------------------------------------------------------------------------------------------
