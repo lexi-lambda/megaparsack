@@ -27,7 +27,7 @@
              (if (empty? input)
                  '()
                  (let ([c (first input)])
-                   (cons (token c (srcloc name line col pos 1))
+                   (cons (datum->syntax #f c (list name line col pos 1))
                          (if (char=? c #\newline)
                              (loop (add1 pos) (add1 line) 0 (rest input))
                              (loop (add1 pos) line (add1 col) (rest input)))))))))

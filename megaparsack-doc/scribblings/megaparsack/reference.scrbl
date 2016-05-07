@@ -9,9 +9,9 @@
 
 @title[#:tag "reference"]{API Reference}
 
-A @deftech{parser} is a value that represents a method of turning a token or sequence of tokens into
-an arbitrary Racket value. Parsers can be created using various primitives, then sequenced together
-using parser combinators to create larger parsers.
+A @deftech{parser} is a value that represents a method of turning a syntax object or sequence of
+syntax objects an arbitrary Racket value. Parsers can be created using various primitives, then
+sequenced together using parser combinators to create larger parsers.
 
 Parsers are @functech{functors}, @functech{applicative functors}, and @functech{monads}, which allows
 them to be mapped over and sequenced together using the corresponding generic interfaces.
@@ -25,8 +25,8 @@ Returns @racket[#t] if @racket[v] is a @tech{parser}, otherwise returns @racket[
 Produces a @reftech{contract} that describes a @tech{parser} that consumes values described by
 @racket[in-ctc] and produces values described by @racket[out-ctc].}
 
-@defproc[(parse [parser parser?] [tokens (listof token?)]) (either/c message? any/c)]{
-Runs @racket[parser] on @racket[tokens] and returns either the result of a successful parse or a value
+@defproc[(parse [parser parser?] [stxs (listof syntax?)]) (either/c message? any/c)]{
+Runs @racket[parser] on @racket[stxs] and returns either the result of a successful parse or a value
 that includes information about the parse failure.}
 
 @defproc[(parse-error->string [message message?]) string?]{
@@ -44,12 +44,6 @@ Extracts a successful parse value from @racket[result]. If @racket[result] is a 
                                              [expected (listof string?)])
             #:transparent]{
 Raised by @racket[parse-result!] when given a parse failure.}
-
-@defstruct*[token ([value any/c] [srcloc srcloc?]) #:transparent]{
-Represents a single parsable entity. The @racket[value] can be anything at all, but usually it is
-either a character or some token produced as the result of lexing. It is unlikely that you will need
-to created @racket[token] values yourself; rather, use higher-level functions like
-@racket[parse-string] that create these values for you.}
 
 @defthing[void/p (parser/c any/c void?)]{
 A parser that always succeeds and always returns @|void-const|.}
@@ -70,7 +64,7 @@ fails. This allows the parser to backtrack and try other alternatives when used 
 
 @defproc[(satisfy/p [proc (any/c . -> . any/c)]) parser?]{
 Creates a parser that checks if @racket[proc] produces a non-@racket[#f] value when applied to a
-single token. If so, it consumes the token and returns successfully; otherwise, it fails without
+single datum. If so, it consumes the datum and returns successfully; otherwise, it fails without
 consuming input.}
 
 @defproc[(label/p [label string?] [parser parser?]) parser?]{
@@ -94,8 +88,8 @@ Produces a parser that attempts @racket[parser] @emph{exactly} @racket[n] times 
 the results.}
 
 @defproc[(==/p [v any/c] [=? (any/c any/c . -> . any/c) equal?]) parser?]{
-Produces a parser that succeeds when a single token is equal to @racket[v], as determined by
-@racket[=?]. Like @racket[satisfy/p], it consumes a single token upon success but does not consume
+Produces a parser that succeeds when a single datum is equal to @racket[v], as determined by
+@racket[=?]. Like @racket[satisfy/p], it consumes a single datum upon success but does not consume
 anything upon failure.}
 
 @defproc[(many/sep/p [parser parser?] [sep parser?]) parser?]{
@@ -114,14 +108,14 @@ successful @racket[sep] parse.}
 
 @defproc[(parse-string [parser (parser/c char? any/c)] [str string?] [src-name any/c 'string])
          (either/c message? any/c)]{
-Parses @racket[str] using @racket[parser], which must consume character tokens. The value provided for
+Parses @racket[str] using @racket[parser], which must consume character datums. The value provided for
 @racket[src-name] is used in error reporting when displaying source location information.}
 
 @defproc[(char/p [c char?]) (parser/c char? char?)]{
-Parses a single token that is equal to @racket[c].}
+Parses a single datum that is equal to @racket[c].}
 
 @defproc[(char-ci/p [c char?]) (parser/c char? char?)]{
-Parses a single token that is case-insensitively equal to @racket[c], as determined by
+Parses a single datum that is case-insensitively equal to @racket[c], as determined by
 @racket[char-ci=?].}
 
 @defthing[letter/p (parser/c char? char?)]{

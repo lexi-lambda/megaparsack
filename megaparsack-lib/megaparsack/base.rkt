@@ -6,16 +6,16 @@
          match-plus
          (multi-in racket [contract function list match port string])
          (prefix-in r: racket/base)
-         (submod data/applicative coerce-delayed))
+         (submod data/applicative coerce-delayed)
+         (for-syntax racket/base
+                     syntax/parse))
 
 (provide lazy/p
          (contract-out
-          [struct token ([value any/c] [srcloc srcloc?])]
-
           [parser? (any/c . -> . boolean?)]
           [parser/c (contract? contract? . -> . contract?)]
 
-          [rename do-parse parse (parser?* (listof token?) . -> . (either/c message? any/c))]
+          [rename do-parse parse (parser?* (listof syntax?) . -> . (either/c message? any/c))]
           [parse-error->string (message? . -> . string?)]
           [parse-result! ((either/c message? any/c) . -> . any/c)]
           [struct (exn:fail:megaparsack exn:fail)
@@ -32,8 +32,6 @@
 ;; supporting types
 ;; ---------------------------------------------------------------------------------------------------
 
-(struct token (value srcloc) #:transparent)
-
 (struct consumed (reply) #:transparent)
 (struct empty (reply) #:transparent)
 
@@ -48,6 +46,22 @@
 
 (define empty-srcloc (srcloc #f #f #f #f #f))
 (define empty-message (message empty-srcloc #f '()))
+
+;; syntax object pattern-matching
+;; ---------------------------------------------------------------------------------------------------
+
+(define (syntax->values stx)
+  (values (syntax-e stx)
+          (srcloc (syntax-source stx)
+                  (syntax-line stx)
+                  (syntax-column stx)
+                  (syntax-position stx)
+                  (syntax-span stx))))
+
+(define-match-expander syntax
+  (syntax-parser
+    [(_ datum srcloc)
+     #'(? syntax? (app syntax->values datum srcloc))]))
 
 ;; core primitives
 ;; ---------------------------------------------------------------------------------------------------
@@ -206,9 +220,9 @@
 (define (satisfy/p proc)
   (parser
    (match-lambda
-     [(list (token (? proc c) loc) cs ...) (consumed (ok c cs (message loc #f '())))]
-     [(list (token c loc) _ ...)           (empty (error (message loc c '())))]
-     [_                                    (empty (error (message empty-srcloc "end of input" '())))])))
+     [(list (syntax (? proc c) loc) cs ...) (consumed (ok c cs (message loc #f '())))]
+     [(list (syntax c loc) _ ...)           (empty (error (message loc c '())))]
+     [_                                     (empty (error (message empty-srcloc "end of input" '())))])))
 
 ;; parser annotation (label/p & hidden/p)
 ;; ---------------------------------------------------------------------------------------------------
