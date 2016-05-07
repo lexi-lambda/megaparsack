@@ -2,6 +2,7 @@
 
 @(require (for-label data/either
                      megaparsack
+                     megaparsack/parser-tools/lex
                      megaparsack/text
                      parser-tools/lex
                      racket/base
