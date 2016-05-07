@@ -32,6 +32,5 @@
 
 (define (some/sep/p p sep)
   (do [x <- p]
-      [xs <- (or/p (do sep (some/sep/p p sep))
-                   (pure '()))]
+      [xs <- (many/p (do sep p))]
       (pure (cons x xs))))
