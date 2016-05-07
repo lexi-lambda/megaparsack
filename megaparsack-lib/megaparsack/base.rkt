@@ -70,7 +70,7 @@
 
   #:methods gen:applicative
   [(define (pure _ x)
-     (parser (λ (input) (empty (ok (syntax-box x empty-srcloc) input empty-message)))))
+     (pure/p x))
 
    (define (apply p ps)
      (do [f  <- p]
@@ -99,8 +99,9 @@
 (define (parser?* v)
   (or (parser? v) (pure? v)))
 
-(define void/p
-  (parser (λ (input) (empty (ok (void) input)))))
+(define (pure/p x)
+  (parser (λ (input) (empty (ok (syntax-box x empty-srcloc) input empty-message)))))
+(define void/p (pure/p (void)))
 (define coerce-parser
   (coerce-pure void/p))
 
