@@ -195,8 +195,8 @@
 ;; error message reconciliation
 ;; ---------------------------------------------------------------------------------------------------
 
-(define/match* (merge-messages (message loc unexpected-a expected-a) (message _ unexpected-b expected-b))
-  (message loc (or unexpected-a unexpected-b) (append expected-a expected-b)))
+(define/match* (merge-messages (message loc-a unexpected-a expected-a) (message loc-b unexpected-b expected-b))
+  (message (merge-srclocs loc-a loc-b) (or unexpected-a unexpected-b) (append expected-a expected-b)))
 
 (define (merge-ok x rest message-a message-b)
   (empty (ok x rest (merge-messages message-a message-b))))
