@@ -9,5 +9,7 @@
     "functional-doc"
     "functional-lib"
     "megaparsack-lib"
+    "parser-tools-doc"
+    "parser-tools-lib"
     "racket-doc"
     "scribble-lib"))

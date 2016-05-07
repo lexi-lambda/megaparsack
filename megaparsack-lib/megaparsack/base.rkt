@@ -21,14 +21,15 @@
           [parse-syntax (parser?* (listof syntax-box?) . -> . (either/c message? syntax?))]
           [parse-error->string (message? . -> . string?)]
           [parse-result! ((either/c message? any/c) . -> . any/c)]
-          [struct (exn:fail:megaparsack exn:fail)
-            ([message any/c] [continuation-marks any/c]
-             [srcloc srcloc?] [unexpected any/c] [expected (listof string?)])]
+          [struct (exn:fail:read:megaparsack exn:fail)
+            ([message any/c] [continuation-marks any/c] [srclocs any/c]
+             [unexpected any/c] [expected (listof string?)])]
 
           [void/p (parser/c any/c void?)]
           [or/p (parser?* parser?* ... . -> . parser?*)]
           [try/p (parser?* . -> . parser?*)]
           [satisfy/p ((any/c . -> . any/c) . -> . parser?*)]
+          [syntax/p (parser?* . -> . (parser/c any/c syntax?))]
           [label/p (string? parser?* . -> . parser?*)]
           [hidden/p (parser?* . -> . parser?*)]))
 
@@ -87,9 +88,12 @@
              [consumed      consumed])]
           [(consumed (ok (and foo (syntax-box x srcloc)) rest message))
            (consumed (match (parse (f x) rest)
-                       [(consumed (ok stx rest message)) (ok (merge-syntax-box/srcloc stx srcloc) rest message)]
-                       [(consumed error)                 error]
-                       [(empty    reply)                 (merge-message/reply message reply)]))]
+                       [(consumed (ok stx rest message))
+                        (ok (merge-syntax-box/srcloc stx srcloc) rest message)]
+                       [(empty (ok (syntax-box datum _) rest message))
+                        (merge-message/reply message (ok (syntax-box datum srcloc) rest message))]
+                       [(consumed error) error]
+                       [(empty error) (merge-message/reply message error)]))]
           [error error]))))])
 
 (define (parser?* v)
@@ -129,7 +133,7 @@
   (map syntax-box->syntax (parse-syntax-box p input)))
 
 (define (parse-datum p input)
-  (map syntax-box-datum (parse-syntax-box p input)))
+  (map syntax->datum (parse-syntax p input)))
 
 (define/match* (parse-error->string (message srcloc unexpected expected))
   (with-output-to-string
@@ -153,20 +157,25 @@
                          (string-join expected " or ")
                          (string-join expected ", " #:before-last ", or ")))))))
 
-(struct exn:fail:megaparsack exn:fail (srcloc unexpected expected) #:transparent)
+(struct exn:fail:read:megaparsack exn:fail:read (unexpected expected) #:transparent)
 
 (define/match (parse-result! result)
   [((right result)) result]
   [((left (and message (message srcloc unexpected expected))))
-   (raise (exn:fail:megaparsack (parse-error->string message)
-                                (current-continuation-marks)
-                                srcloc unexpected expected))])
+   (raise (exn:fail:read:megaparsack (parse-error->string message)
+                                     (current-continuation-marks)
+                                     (list srcloc) unexpected expected))])
 
 ;; syntax object utilities
 ;; ---------------------------------------------------------------------------------------------------
 
+(define some-read-syntax (read-syntax #f (open-input-string "()")))
+
 (define/match* (syntax-box->syntax (syntax-box datum (srcloc name line col pos span)))
-  (datum->syntax #f datum (list name line col pos span)))
+  (datum->syntax #f datum (list name line col pos span) some-read-syntax))
+
+(define (make-syntax datum srcloc)
+  (syntax-box->syntax (syntax-box datum srcloc)))
 
 (define (merge-srclocs srcloc-a srcloc-b)
   (match (sort (list srcloc-a srcloc-b) < #:key (λ (x) (or (srcloc-position x) -1)))
@@ -247,6 +256,19 @@
      [(list (and stx (syntax-box (? proc) loc)) cs ...) (consumed (ok stx cs (message loc #f '())))]
      [(list (syntax-box c loc) _ ...)                   (empty (error (message loc c '())))]
      [_                                                 (empty (error (message empty-srcloc "end of input" '())))])))
+
+;; source location reification (syntax/p)
+;; ---------------------------------------------------------------------------------------------------
+
+(define (syntax/p p)
+  (parser
+   (λ (input)
+     (match (parse p input)
+       [(consumed (ok (syntax-box datum srcloc) rest message))
+        (consumed (ok (syntax-box (make-syntax datum srcloc) srcloc) rest message))]
+       [(empty (ok (syntax-box datum srcloc) rest message))
+        (empty (ok (syntax-box (make-syntax datum srcloc) srcloc) rest message))]
+       [error error]))))
 
 ;; parser annotation (label/p & hidden/p)
 ;; ---------------------------------------------------------------------------------------------------

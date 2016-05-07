@@ -18,10 +18,11 @@ install:
   - raco pkg install --auto --link
       $TRAVIS_BUILD_DIR/megaparsack-lib
       $TRAVIS_BUILD_DIR/megaparsack-parser
+      $TRAVIS_BUILD_DIR/megaparsack-parser-tools
       $TRAVIS_BUILD_DIR/megaparsack-doc
       $TRAVIS_BUILD_DIR/megaparsack-test
   - raco pkg install --auto cover cover-coveralls
 
 script:
-  - raco test -ep megaparsack-lib megaparsack-parser megaparsack-test
-  - raco cover -bf coveralls -d $TRAVIS_BUILD_DIR/coverage -p megaparsack-lib megaparsack-parser megaparsack-test
+  - raco test -ep megaparsack-lib megaparsack-parser megaparsack-parser-tools megaparsack-test
+  - raco cover -bf coveralls -d $TRAVIS_BUILD_DIR/coverage -p megaparsack-lib megaparsack-parser megaparsack-parser-tools megaparsack-test

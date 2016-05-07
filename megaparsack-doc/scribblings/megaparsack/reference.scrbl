@@ -3,6 +3,7 @@
 @(require (for-label data/either
                      megaparsack
                      megaparsack/text
+                     parser-tools/lex
                      racket/base
                      racket/contract)
           "util.rkt")
@@ -36,12 +37,11 @@ ways.}
 
 @defproc[(parse-result! [result (either/c message? any/c)]) any/c]{
 Extracts a successful parse value from @racket[result]. If @racket[result] is a failure, raises
-@racket[exn:fail:megaparsack] with the failure message converted to a string using
+@racket[exn:fail:read:megaparsack] with the failure message converted to a string using
 @racket[parse-error->string].}
 
-@defstruct*[(exn:fail:megaparsack exn:fail) ([srcloc srcloc?]
-                                             [unexpected any/c]
-                                             [expected (listof string?)])
+@defstruct*[(exn:fail:read:megaparsack exn:fail:read) ([unexpected any/c]
+                                                       [expected (listof string?)])
             #:transparent]{
 Raised by @racket[parse-result!] when given a parse failure.}
 
@@ -144,3 +144,23 @@ Parses a sequence of digits as an integer. Does not handle negative numbers or n
 
 @defproc[(string/p [str string?]) (parser/c char? string?)]{
 Parses a sequence of characters equal to @racket[str] and returns @racket[str] as its result.}
+
+@section[#:tag "parsing-with-parser-tools"]{Parsing with @racketmodname[parser-tools/lex]}
+
+@defmodule[megaparsack/parser-tools/lex]
+
+Sometimes it is useful to run a lexing pass over an input stream before parsing, in which case
+@racketmodname[megaparsack/text] is not appropriate. The @tt{parser-tools} package provides the
+@racketmodname[parser-tools/lex] library, which implements a lexer that produces tokens.
+
+When using @racketmodname[parser-tools/lex], use @racket[lexer-src-pos] instead of @racket[lexer] to
+enable the built-in source location tracking. This will produce a sequence of @racket[position-token]
+elements, which can then be passed to @racket[parse-tokens] and detected with @racket[token/p].
+
+@defproc[(parse-tokens [parser parser?] [tokens (listof position-token?)] [source-name any/c 'tokens])
+         syntax?]{
+Parses a stream of tokens, @racket[tokens], produced from @racket[lexer-src-pos] from
+@racketmodname[parser-tools/lex].}
+
+@defproc[(token/p [name symbol?]) (parser/c (or/c symbol? token?) any/c)]{
+Produces a parser that expects a single token with @racket[name], as produced by @racket[token-name].}

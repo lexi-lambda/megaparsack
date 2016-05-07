@@ -6,11 +6,13 @@
   '("base"
     "megaparsack-lib"
     "megaparsack-doc"
-    "megaparsack-parser"))
+    "megaparsack-parser"
+    "megaparsack-parser-tools"))
 (define build-deps
   '())
 
 (define implies
   '("megaparsack-lib"
     "megaparsack-doc"
-    "megaparsack-parser"))
+    "megaparsack-parser"
+    "megaparsack-parser-tools"))
