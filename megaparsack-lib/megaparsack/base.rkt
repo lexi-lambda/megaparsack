@@ -29,6 +29,7 @@
           [or/p (parser?* parser?* ... . -> . parser?*)]
           [try/p (parser?* . -> . parser?*)]
           [satisfy/p ((any/c . -> . any/c) . -> . parser?*)]
+          [eof/p (parser/c any/c void?)]
           [syntax/p (parser?* . -> . (parser/c any/c syntax?))]
           [label/p (string? parser?* . -> . parser?*)]
           [hidden/p (parser?* . -> . parser?*)]))
@@ -257,6 +258,15 @@
      [(list (and stx (syntax-box (? proc) loc)) cs ...) (consumed (ok stx cs (message loc #f '())))]
      [(list (syntax-box c loc) _ ...)                   (empty (error (message loc c '())))]
      [_                                                 (empty (error (message empty-srcloc "end of input" '())))])))
+
+;; termination (eof/p)
+;; ---------------------------------------------------------------------------------------------------
+
+(define eof/p
+  (parser
+   (match-lambda
+     ['()                               (parse void/p '())]
+     [(list (syntax-box c loc) _ ...)   (empty (error (message loc c '("end of input"))))])))
 
 ;; source location reification (syntax/p)
 ;; ---------------------------------------------------------------------------------------------------

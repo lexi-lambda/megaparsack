@@ -2,6 +2,7 @@
 
 (require megaparsack
          megaparsack/parser/json
+         racket/function
          rackunit
          rackunit/spec)
 
@@ -31,4 +32,8 @@
 
   (it "parses objects as hasheqs with symbol keys"
     (check-equal? (parse-result! (parse-json-string "{ \"a\": 1, \"b\": true }"))
-                  #hasheq((a . 1) (b . #t)))))
+                  #hasheq((a . 1) (b . #t))))
+
+  (it "fails when it cannot parse the entire string"
+    (check-exn #rx"unexpected: t\n  expected: end of input"
+               (thunk (parse-result! (parse-json-string "{}true"))))))

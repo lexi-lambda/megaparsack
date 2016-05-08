@@ -111,5 +111,10 @@
             object/p
             array/p)))
 
+(define entire-value/p
+  (do [v <- value/p]
+      eof/p
+      (pure v)))
+
 (define (parse-json-string str [name 'json])
-  (parse-string value/p str name))
+  (parse-string entire-value/p str name))

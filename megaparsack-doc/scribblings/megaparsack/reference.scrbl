@@ -1,17 +1,10 @@
 #lang scribble/manual
 
-@(require (for-label data/either
-                     megaparsack
-                     megaparsack/parser-tools/lex
-                     megaparsack/text
-                     parser-tools/lex
-                     racket/base
-                     racket/contract)
-          "util.rkt")
+@(require "util.rkt")
 
 @title[#:tag "reference"]{API Reference}
 
-A @deftech{parser} is a value that represents a method of turning a syntax object or sequence of
+A @tech{parser} is a value that represents a method of turning a syntax object or sequence of
 syntax objects an arbitrary Racket value. Parsers can be created using various primitives, then
 sequenced together using parser combinators to create larger parsers.
 
@@ -78,6 +71,10 @@ fails. This allows the parser to backtrack and try other alternatives when used 
 Creates a parser that checks if @racket[proc] produces a non-@racket[#f] value when applied to a
 single datum. If so, it consumes the datum and returns successfully; otherwise, it fails without
 consuming input.}
+
+@defthing[eof/p (parser/c any/c void?)]{
+A parser that only succeeds when there is no more input left to consume. It always returns
+@|void-const|.}
 
 @defproc[(label/p [label string?] [parser parser?]) parser?]{
 Creates a parser like @racket[parser], except that failures are reported in terms of @racket[label]

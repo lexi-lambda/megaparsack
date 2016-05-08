@@ -13,4 +13,6 @@ and compose different parsers using a base set of primitives.
 
 @table-of-contents[]
 
+@include-section["megaparsack/basics.scrbl"]
+@include-section["megaparsack/choice.scrbl"]
 @include-section["megaparsack/reference.scrbl"]
