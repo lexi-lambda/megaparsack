@@ -17,13 +17,13 @@ before_install:
   - export PATH="${RACKET_DIR}/bin:${PATH}"
 
 install:
-  - raco pkg install --auto --link
+  - raco pkg install --installation --auto --link
       $TRAVIS_BUILD_DIR/megaparsack-lib
       $TRAVIS_BUILD_DIR/megaparsack-parser
       $TRAVIS_BUILD_DIR/megaparsack-parser-tools
       $TRAVIS_BUILD_DIR/megaparsack-doc
       $TRAVIS_BUILD_DIR/megaparsack-test
-  - raco pkg install --auto cover cover-coveralls
+  - raco pkg install --installation --auto cover cover-coveralls
 
 script:
   - raco test -ep megaparsack-lib megaparsack-parser megaparsack-parser-tools megaparsack-test
