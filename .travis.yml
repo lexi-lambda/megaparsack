@@ -5,6 +5,8 @@ sudo: false
 env:
   global:
     - RACKET_DIR: '~/racket'
+    - GH_REF: 'github.com/lexi-lambda/megaparsack.git'
+    - secure: 'pDCRr7Zjtc8hJ2pw9aK8bJiBaM3bTf6pNtrKmi+l6SlZcxbb96ccgVZDIt8oAwvVqi+m8WDLr/U6A5JpWtsv5vjuVFusaCDWxU6S58mzkLcsav+L5GvYAPu+uc94fizmsga+BU3OBeKNVIernLbUhGWwVJDYTodljzny0/htYE4DVQPodSdPwE/E6RVZmnep++rBYXcOKqkPwxHmCsOGZKyGUOSksTB1EmNUa+76jbwdTbuBQ2j4+xGBueyGj28S38LiGjTrro32YMKA503TY1c6gSJYbgvdWCnqZOgvddu3KnLgZwABKXteZ1vEzLKpXrB/oOFkJE8jAxk3pZGVRcPewCM2o0+MKoLLlDpwq0rXDBHHEYAvkqYWlgY50Xyrg01ogWjZLUkxYfsf8WmVRe//xCpQhym0M80DB6c4zxgMNcxkqvD/tdBN5zg9Jatc3/BJ/tLTIwSprzQNpYJByy/lXHu1iGwA9tRIDp7UmmFngLYCk4QeYz5PKOWMNYG1gZ7eIyMSWJqZerG8arNf4CKmXdCxkJX7ANXNX5FTJdAj6l6pA7ANnrISn4f2C2/lZHblB3W7XM1BSJtMV/QLt6jML6SiHVjKzMy01a/b/s2slaKzpvJM7sINDJdiuWg/4W35Kl55bU+209jYHoDUngCtXaVRDL9yQH9f0h4dKFg='
   matrix:
     - RACKET_VERSION: 6.5
     - RACKET_VERSION: HEAD
@@ -26,3 +28,6 @@ install:
 script:
   - raco test -ep megaparsack-lib megaparsack-parser megaparsack-parser-tools megaparsack-test
   - raco cover -bf coveralls -d $TRAVIS_BUILD_DIR/coverage -p megaparsack-lib megaparsack-parser megaparsack-parser-tools megaparsack-test
+
+after_success:
+  - bash deploy-docs.sh
