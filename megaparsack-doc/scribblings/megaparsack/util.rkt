@@ -7,6 +7,7 @@
                     megaparsack
                     megaparsack/text
                     megaparsack/parser-tools/lex
+                    parser-tools/lex
                     (except-in racket/base do map)
                     racket/contract
                     racket/function)
@@ -20,6 +21,7 @@
                                   megaparsack
                                   megaparsack/text
                                   megaparsack/parser-tools/lex
+                                  parser-tools/lex
                                   racket/base
                                   racket/contract
                                   racket/function))
