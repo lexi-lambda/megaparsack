@@ -148,12 +148,13 @@
             (display "  unexpected: ")
             (display unexpected))
 
-          (unless (null? expected)
+          (define organized-expected (sort (remove-duplicates expected) string<=?))
+          (unless (null? organized-expected)
             (newline)
             (display "  expected: ")
-            (display (if (< (length expected) 3)
-                         (string-join expected " or ")
-                         (string-join expected ", " #:before-last ", or ")))))))
+            (display (if (< (length organized-expected) 3)
+                         (string-join organized-expected " or ")
+                         (string-join organized-expected ", " #:before-last ", or ")))))))
 
 (struct exn:fail:read:megaparsack exn:fail:read (unexpected expected) #:transparent)
 
