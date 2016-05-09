@@ -8,6 +8,7 @@
                     megaparsack/text
                     megaparsack/parser-tools/lex
                     parser-tools/lex
+                    (prefix-in : parser-tools/lex-sre)
                     (except-in racket/base do map)
                     racket/contract
                     racket/function)
@@ -22,6 +23,7 @@
                                   megaparsack/text
                                   megaparsack/parser-tools/lex
                                   parser-tools/lex
+                                  parser-tools/lex-sre
                                   racket/base
                                   racket/contract
                                   racket/function))
@@ -42,6 +44,8 @@
                     megaparsack
                     megaparsack/text
                     megaparsack/parser-tools/lex
+                    parser-tools/lex
+                    (prefix-in : parser-tools/lex-sre)
                     (except-in racket/base do map)
                     racket/function))
     eval))
