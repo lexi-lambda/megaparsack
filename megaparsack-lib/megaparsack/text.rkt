@@ -40,7 +40,7 @@
 
 (define integer/p
   (label/p "integer"
-           (do [digits <- (some/p digit/p)]
+           (do [digits <- (many+/p digit/p)]
                (pure (string->number (apply string digits))))))
 
 (define (string/p str)

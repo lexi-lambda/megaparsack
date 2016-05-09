@@ -6,7 +6,7 @@
 
 (provide parse-json-string)
 
-(define spaces/p (many/p (hidden/p space/p)))
+(define spaces/p (many*/p (hidden/p space/p)))
 
 (define positive-number/p
   (or/p (try/p (do [i <- (or/p integer/p (pure 0))]
@@ -61,7 +61,7 @@
   (label/p
    "string"
    (do (char/p #\")
-       [chars <- (many/p string-char-or-escape/p)]
+       [chars <- (many*/p string-char-or-escape/p)]
        (char/p #\")
        (pure (apply string chars)))))
 
@@ -88,7 +88,7 @@
   (label/p
    "object"
    (do (char/p #\{)
-       [pairs <- (many/sep/p object-pair/p (char/p #\,))]
+       [pairs <- (many/sep*/p object-pair/p (char/p #\,))]
        spaces/p
        (char/p #\})
        (pure (make-immutable-hasheq (sequence->list pairs))))))
@@ -97,7 +97,7 @@
   (label/p
    "array"
    (do (char/p #\[)
-       [elems <- (many/sep/p (do spaces/p value/p) (char/p #\,))]
+       [elems <- (many/sep*/p (do spaces/p value/p) (char/p #\,))]
        spaces/p
        (char/p #\])
        (pure elems))))

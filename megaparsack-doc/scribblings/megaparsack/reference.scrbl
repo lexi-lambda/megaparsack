@@ -86,10 +86,10 @@ completely hides any failure information produced by @racket[parser] when report
 useful when parsing things like whitespace which are usually not useful to include in error
 messages.)}
 
-@defproc[(many/p [parser parser?]) (parser/c list?)]{
+@defproc[(many*/p [parser parser?]) (parser/c list?)]{
 Produces a parser that attempts @racket[parser] zero or more times and returns a list of the results.}
 
-@defproc[(some/p [parser parser?]) parser?]{
+@defproc[(many+/p [parser parser?]) parser?]{
 Produces a parser that attempts @racket[parser] one or more times and returns a list of the results.}
 
 @defproc[(repeat/p [n exact-nonnegative-integer?] [parser parser?]) (parser/c any/c list?)]{
@@ -101,12 +101,12 @@ Produces a parser that succeeds when a single datum is equal to @racket[v], as d
 @racket[=?]. Like @racket[satisfy/p], it consumes a single datum upon success but does not consume
 anything upon failure.}
 
-@defproc[(many/sep/p [parser parser?] [sep parser?]) parser?]{
+@defproc[(many/sep*/p [parser parser?] [sep parser?]) parser?]{
 Produces a parser that attempts @racket[parser] zero or more times, each parse separated by
 @racket[sep]. It returns a list of successful @racket[parser] parses but discards the results of each
 successful @racket[sep] parse.}
 
-@defproc[(some/sep/p [parser parser?] [sep parser?]) parser?]{
+@defproc[(many/sep+/p [parser parser?] [sep parser?]) parser?]{
 Produces a parser that attempts @racket[parser] one or more times, each parse separated by
 @racket[sep]. It returns a list of successful @racket[parser] parses but discards the results of each
 successful @racket[sep] parse.}
