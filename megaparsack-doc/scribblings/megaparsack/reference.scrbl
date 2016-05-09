@@ -20,8 +20,8 @@ Returns @racket[#t] if @racket[v] is a @tech{parser}, otherwise returns @racket[
 Produces a @reftech{contract} that describes a @tech{parser} that consumes values described by
 @racket[in-ctc] and produces values described by @racket[out-ctc].}
 
-@defproc[(parse [parser parser?] [stxs (listof syntax?)]) (either/c message? any/c)]{
-Runs @racket[parser] on @racket[stxs] and returns either the result of a successful parse or a value
+@defproc[(parse [parser parser?] [boxes (listof syntax-box?)]) (either/c message? any/c)]{
+Runs @racket[parser] on @racket[boxes] and returns either the result of a successful parse or a value
 that includes information about the parse failure.}
 
 @defproc[(parse-error->string [message message?]) string?]{
@@ -85,6 +85,15 @@ Like @racket[label/p], adjusts how failures are reported for @racket[parser], bu
 completely hides any failure information produced by @racket[parser] when reporting errors. (This is
 useful when parsing things like whitespace which are usually not useful to include in error
 messages.)}
+
+@defproc[(syntax/p [parser parser?]) (parser/c any/c syntax?)]{
+Produces a parser like @racket[parser], except that its result is wrapped in a @reftech{syntax object}
+that automatically incorporates source location information from the input stream. This allows parsers
+to add a sort of automated source location tracking to their output.
+
+The @racket[syntax/p] combinator makes source location wrapping opt-in, which is desirable since it is
+often useful to return values from combinators that are intermediate values not intended to be wrapped
+in syntax (for example, @racket[many*/p] returns a list of results, not a syntax list).}
 
 @defproc[(many*/p [parser parser?]) (parser/c list?)]{
 Produces a parser that attempts @racket[parser] zero or more times and returns a list of the results.}

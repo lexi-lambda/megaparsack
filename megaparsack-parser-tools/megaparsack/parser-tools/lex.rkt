@@ -11,7 +11,7 @@
                        [token/p (symbol? . -> . parser?)]))
 
 (define (parse-tokens parser toks [srcname 'tokens])
-  (parse-syntax parser (map (position-token->parser-token srcname) toks)))
+  (parse parser (map (position-token->parser-token srcname) toks)))
 
 (define ((position-token->parser-token source-name) pos-token)
   (match pos-token

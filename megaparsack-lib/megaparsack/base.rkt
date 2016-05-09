@@ -18,7 +18,6 @@
           [parser/c (contract? contract? . -> . contract?)]
 
           [rename parse-datum parse (parser?* (listof syntax-box?) . -> . (either/c message? any/c))]
-          [parse-syntax (parser?* (listof syntax-box?) . -> . (either/c message? syntax?))]
           [parse-error->string (message? . -> . string?)]
           [parse-result! ((either/c message? any/c) . -> . any/c)]
           [struct (exn:fail:read:megaparsack exn:fail)
@@ -131,11 +130,8 @@
          (empty    (error message)))
      (left message)]))
 
-(define (parse-syntax p input)
-  (map syntax-box->syntax (parse-syntax-box p input)))
-
 (define (parse-datum p input)
-  (map syntax->datum (parse-syntax p input)))
+  (map syntax-box-datum (parse-syntax-box p input)))
 
 (define/match* (parse-error->string (message srcloc unexpected expected))
   (with-output-to-string
@@ -171,10 +167,10 @@
 ;; syntax object utilities
 ;; ---------------------------------------------------------------------------------------------------
 
-(define some-read-syntax (read-syntax #f (open-input-string "()")))
+(define some-original-syntax (read-syntax #f (open-input-string "()")))
 
 (define/match* (syntax-box->syntax (syntax-box datum (srcloc name line col pos span)))
-  (datum->syntax #f datum (list name line col pos span) some-read-syntax))
+  (datum->syntax #f datum (list name line col pos span) some-original-syntax))
 
 (define (make-syntax datum srcloc)
   (syntax-box->syntax (syntax-box datum srcloc)))
