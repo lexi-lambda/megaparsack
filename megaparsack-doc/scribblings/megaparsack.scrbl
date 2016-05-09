@@ -4,6 +4,8 @@
 
 @title{Megaparsack: Practical Parser Combinators}
 
+@author{@author+email["Alexis King" "lexi.lambda@gmail.com"]}
+
 @defmodule[megaparsack]
 
 Megaparsack is a @emph{parser combinator} library: a composable set of simple parsers that can be used
