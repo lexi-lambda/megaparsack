@@ -125,10 +125,10 @@
   (match (parse p input)
     [(or (consumed (ok x _ _))
          (empty    (ok x _ _)))
-     (right x)]
+     (success x)]
     [(or (consumed (error message))
          (empty    (error message)))
-     (left message)]))
+     (failure message)]))
 
 (define (parse-datum p input)
   (map syntax-box-datum (parse-syntax-box p input)))
@@ -159,8 +159,8 @@
 (struct exn:fail:read:megaparsack exn:fail:read (unexpected expected) #:transparent)
 
 (define/match (parse-result! result)
-  [((right result)) result]
-  [((left (and message (message srcloc unexpected expected))))
+  [((success result)) result]
+  [((failure (and message (message srcloc unexpected expected))))
    (raise (exn:fail:read:megaparsack (parse-error->string message)
                                      (current-continuation-marks)
                                      (list srcloc) unexpected expected))])

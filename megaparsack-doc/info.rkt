@@ -8,7 +8,7 @@
   '("base"
     "functional-doc"
     "functional-lib"
-    "megaparsack-lib"
+    ["megaparsack-lib" #:version "0.2"]
     "megaparsack-parser-tools"
     "parser-tools-doc"
     "parser-tools-lib"

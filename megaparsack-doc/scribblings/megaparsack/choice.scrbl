@@ -37,8 +37,8 @@ will consider the parse successful and return. To demonstrate that this works, w
 parser on some strings:
 
 @(choice-interaction
-  (eval:check (parse-string boolean/p "true") (right #t))
-  (eval:check (parse-string boolean/p "false") (right #f)))
+  (eval:check (parse-string boolean/p "true") (success #t))
+  (eval:check (parse-string boolean/p "false") (success #f)))
 
 The @racket[or/p] combinator also automatically cooperates with error handling to provide helpful
 error messages when parsing fails:
@@ -58,7 +58,7 @@ first one:
   (define overlapping/p
     (or/p (string/p "hello")
           (string/p "hello, world!")))
-  (eval:check (parse-string overlapping/p "hello, world!") (right "hello")))
+  (eval:check (parse-string overlapping/p "hello, world!") (success "hello")))
 
 Just like ordinary boolean @racket[or], keep in mind that order does matter with @racket[or/p].
 
@@ -77,7 +77,7 @@ You might expect that, if the first match fails, it will try the second one, but
 doesn’t actually work:
 
 @(choice-interaction
-  (eval:check (parse-string overlapping/p "hello, world!") (right "hello, world!"))
+  (eval:check (parse-string overlapping/p "hello, world!") (success "hello, world!"))
   (eval:error (parse-result! (parse-string overlapping/p "hello"))))
 
 What gives? Take a close look at the error message: it is expecting the rest of @tt{hello, world!},
@@ -99,8 +99,8 @@ a parser into one the backtracks upon failure. We can use this to solve our issu
   (define backtracking-overlapping/p
     (or/p (try/p (string/p "hello, world!"))
           (string/p "hello")))
-  (eval:check (parse-string backtracking-overlapping/p "hello, world!") (right "hello, world!"))
-  (eval:check (parse-string backtracking-overlapping/p "hello") (right "hello")))
+  (eval:check (parse-string backtracking-overlapping/p "hello, world!") (success "hello, world!"))
+  (eval:check (parse-string backtracking-overlapping/p "hello") (success "hello")))
 
 All that @racket[try/p] does is disable the “committing” behavior mentioned earlier: instead of
 committing to a particular path once any of the parse succeeds, any error that occurs within the
@@ -139,8 +139,8 @@ Therefore, you might write the parser like this:
 This parser seems innocuous enough, right? It even works successfully:
 
 @(choice-interaction
-  (eval:check (parse-string try-labeled/p "the integer: 42") (right 42))
-  (eval:check (parse-string try-labeled/p "the boolean: false") (right #f)))
+  (eval:check (parse-string try-labeled/p "the integer: 42") (success 42))
+  (eval:check (parse-string try-labeled/p "the boolean: false") (success #f)))
 
 But there is a lurking problem with this parser, and that’s its error messages. Consider a mismatch,
 when we provide the @tt{the integer:} label but do not actually provide an integer:
@@ -184,9 +184,9 @@ particular grammar permits @emph{any number of} elements in sequence? For that, 
 it fails. For example, here is a parser that parses any number of occurrences of the letter @tt{a}:
 
 @(parser-interaction
-  (eval:check (parse-string (many*/p (char/p #\a)) "") (right '()))
-  (eval:check (parse-string (many*/p (char/p #\a)) "a") (right '(#\a)))
-  (eval:check (parse-string (many*/p (char/p #\a)) "aaaa") (right '(#\a #\a #\a #\a))))
+  (eval:check (parse-string (many*/p (char/p #\a)) "") (success '()))
+  (eval:check (parse-string (many*/p (char/p #\a)) "a") (success '(#\a)))
+  (eval:check (parse-string (many*/p (char/p #\a)) "aaaa") (success '(#\a #\a #\a #\a))))
 
 This allows creating grammars that parse arbitrary numbers of values. The @racket[many+/p] combinator
 is similar, but it parses 1 or more instances of the provided parser rather than zero or more. This
@@ -198,7 +198,7 @@ can be used to parse two integers separated by any amount of whitespace, for exa
         (many+/p space/p)
         [y <- integer/p]
         (pure (list x y))))
-  (eval:check (parse-string two-integers/p "13     102") (right '(13 102))))
+  (eval:check (parse-string two-integers/p "13     102") (success '(13 102))))
 
 Perhaps even more frequently, though, you may want to parse some number of values separated by some
 delimiter. For example, perhaps you want to parse a whole list of integers separated by commas. That
@@ -207,7 +207,7 @@ can be accomplished using @racket[many/sep*/p], which accepts a parser for the s
 @(parser-interaction
   (define many-integers/p
     (many/sep*/p integer/p (char/p #\,)))
-  (eval:check (parse-string many-integers/p "1,2,3,5,8,13") (right '(1 2 3 5 8 13))))
+  (eval:check (parse-string many-integers/p "1,2,3,5,8,13") (success '(1 2 3 5 8 13))))
 
 There is also @racket[many/sep+/p] which combines the 1 or more parsing behavior of @racket[many+/p]
 with the separator parsing of @racket[many/sep*/p].
