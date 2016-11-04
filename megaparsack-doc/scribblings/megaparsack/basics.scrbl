@@ -29,9 +29,9 @@ from strings. Let’s start by parsing an integer:
 @(parser-interaction
   (eval:check (parse-string integer/p "42") (success 42)))
 
-Since the parser was successful, it returns a @racket[success] value. The @racket[parse-string] function
-returns an @functech{either} value that represents success and failure. For example, take a look at
-what would happen when a parse fails:
+Since the parser was successful, it returns a @racket[success] value. The @racket[parse-string]
+function returns an @functech{either} value that represents success and failure. For example, take a
+look at what would happen when a parse fails:
 
 @(parser-interaction
   (parse-string integer/p "not an integer"))
@@ -97,13 +97,13 @@ return itself. Indeed, in these contrived examples, it’s not very useful at al
 
 @(define-parser-interaction sequencing-interaction close-sequencing!)
 
-All @tech{parsers} are @functech{monads}, so it’s possible to use @racket[chain] and @racket[do] to
-combine multiple parsers together to create a bigger parser. We need to @racket[(require data/monad)] first,
-which is where @racket[chain] and @racket[do] are defined.
-
-For example, let’s create a parser that parses the letters @tt{a} and @tt{b} in sequence:
+All @tech{parsers} are @functech{monads}, so it’s possible to use @racket[chain] and @racket[do] from
+@racketmodname[data/monad] to combine multiple parsers together to create a bigger parser. For
+example, let’s create a parser that parses the letters @tt{a} and @tt{b} in sequence:
 
 @(sequencing-interaction
+  (eval:alts (require @#,racketmodname[data/monad])
+             (void))
   (define ab/p
     (do (char/p #\a)
         (char/p #\b))))
