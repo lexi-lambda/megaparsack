@@ -98,8 +98,10 @@ return itself. Indeed, in these contrived examples, it’s not very useful at al
 @(define-parser-interaction sequencing-interaction close-sequencing!)
 
 All @tech{parsers} are @functech{monads}, so it’s possible to use @racket[chain] and @racket[do] to
-combine multiple parsers together to create a bigger parser. For example, let’s create a parser that
-parses the letters @tt{a} and @tt{b} in sequence:
+combine multiple parsers together to create a bigger parser. We need to @racket[(require data/monad)] first,
+which is where @racket[chain] and @racket[do] are defined.
+
+For example, let’s create a parser that parses the letters @tt{a} and @tt{b} in sequence:
 
 @(sequencing-interaction
   (define ab/p
