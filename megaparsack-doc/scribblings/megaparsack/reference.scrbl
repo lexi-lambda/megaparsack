@@ -129,6 +129,12 @@ successful @racket[sep] parse.}
 Parses @racket[str] using @racket[parser], which must consume character datums. The value provided for
 @racket[src-name] is used in error reporting when displaying source location information.}
 
+@defproc[(parse-syntax-string [parser (parser/c char? any/c)] [stx-str (syntax/c string?)])
+         (either/c message? any/c)]{
+Like @racket[parse-string], but uses the source location information from @racket[stx-str] to
+initialize the source location tracking. The result of @racket[(syntax-source stx-str)] is used in
+place of the @racket[_src-name] argument.}
+
 @defproc[(char/p [c char?]) (parser/c char? char?)]{
 Parses a single datum that is equal to @racket[c].}
 
@@ -141,6 +147,9 @@ Parses an alphabetic letter, as determined by @racket[char-alphabetic?].}
 
 @defthing[digit/p (parser/c char? char?)]{
 Parses a single digit, as determined by @racket[char-numeric?].}
+
+@defthing[symbolic/p (parser/c char? char?)]{
+Parses a symbolic character, as determined by @racket[char-symbolic?].}
 
 @defthing[space/p (parser/c char? char?)]{
 Parses a single whitespace character, as determined by @racket[char-whitespace?] or
