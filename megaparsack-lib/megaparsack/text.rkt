@@ -10,6 +10,7 @@
 
 (provide (contract-out
           [parse-string (->* [parser? string?] [any/c] any/c)]
+          [parse-stx-string (-> parser? syntax? any/c)]
 
           [char/p (char? . -> . (parser/c char? char?))]
           [char-ci/p (char? . -> . (parser/c char? char?))]
@@ -20,18 +21,25 @@
           [integer/p (parser/c char? integer?)]
           [string/p (string? . -> . (parser/c char? string?))]))
 
+(define (make-syntax-boxes name pos line col input)
+  (if (empty? input)
+      '()
+      (let ([c (first input)])
+        (cons (syntax-box c (srcloc name line col pos 1))
+              (if (char=? c #\newline)
+                  (make-syntax-boxes name (add1 pos) (add1 line) 0 (rest input))
+                  (make-syntax-boxes name (add1 pos) line (add1 col) (rest input)))))))
+
 (define (parse-string p input [name 'string])
-  (parse p (let loop ([pos 1]
-                      [line 1]
-                      [col 0]
-                      [input (string->list input)])
-             (if (empty? input)
-                 '()
-                 (let ([c (first input)])
-                   (cons (syntax-box c (srcloc name line col pos 1))
-                         (if (char=? c #\newline)
-                             (loop (add1 pos) (add1 line) 0 (rest input))
-                             (loop (add1 pos) line (add1 col) (rest input)))))))))
+  (parse p (make-syntax-boxes name 1 1 0 (string->list input))))
+
+(define (parse-stx-string p stx-string)
+  (define name (syntax-source stx-string))
+  (parse p (make-syntax-boxes (syntax-source stx-string)
+                              (add1 (syntax-position stx-string))
+                              (syntax-line stx-string)
+                              (add1 (syntax-column stx-string))
+                              (string->list (syntax->datum stx-string)))))
 
 (define (char/p c)    (label/p (format "'~a'" c) (satisfy/p #{char=? c})))
 (define (char-ci/p c) (label/p (format "'~a'" c) (satisfy/p #{char-ci=? c})))

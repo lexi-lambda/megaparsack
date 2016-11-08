@@ -129,6 +129,10 @@ successful @racket[sep] parse.}
 Parses @racket[str] using @racket[parser], which must consume character datums. The value provided for
 @racket[src-name] is used in error reporting when displaying source location information.}
 
+@defproc[(parse-stx-string [parser (parser/c char? any/c)] [stx-str syntax?])
+         (either/c message? any/c)]{
+Parses @racket[stx-str], a syntax object containing a string, using @racket[parser], which must consume character datums.}
+
 @defproc[(char/p [c char?]) (parser/c char? char?)]{
 Parses a single datum that is equal to @racket[c].}
 
