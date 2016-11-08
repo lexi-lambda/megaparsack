@@ -142,6 +142,9 @@ Parses an alphabetic letter, as determined by @racket[char-alphabetic?].}
 @defthing[digit/p (parser/c char? char?)]{
 Parses a single digit, as determined by @racket[char-numeric?].}
 
+@defthing[symbolic/p (parser/c char? char?)]{
+Parses a symbolic character, as determined by @racket[char-symbolic?].}
+
 @defthing[space/p (parser/c char? char?)]{
 Parses a single whitespace character, as determined by @racket[char-whitespace?] or
 @racket[char-blank?].}

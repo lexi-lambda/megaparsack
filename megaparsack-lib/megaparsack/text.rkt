@@ -15,6 +15,7 @@
           [char-ci/p (char? . -> . (parser/c char? char?))]
           [letter/p (parser/c char? char?)]
           [digit/p (parser/c char? char?)]
+          [symbolic/p (parser/c char? char?)]
           [space/p (parser/c char? char?)]
           [integer/p (parser/c char? integer?)]
           [string/p (string? . -> . (parser/c char? string?))]))
@@ -36,6 +37,7 @@
 (define (char-ci/p c) (label/p (format "'~a'" c) (satisfy/p #{char-ci=? c})))
 (define letter/p      (label/p "letter" (satisfy/p char-alphabetic?)))
 (define digit/p       (label/p "number" (satisfy/p char-numeric?)))
+(define symbolic/p    (label/p "symbolic" (satisfy/p char-symbolic?)))
 (define space/p       (label/p "whitespace" (satisfy/p (disjoin char-whitespace? char-blank?))))
 
 (define integer/p
