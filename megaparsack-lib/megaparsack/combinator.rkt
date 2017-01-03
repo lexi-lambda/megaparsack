@@ -11,7 +11,10 @@
           [repeat/p (exact-nonnegative-integer? parser? . -> . (parser/c any/c list?))]
           [==/p (->* [any/c] [(any/c any/c . -> . any/c)] parser?)]
           [many/sep*/p (parser? parser? . -> . parser?)]
-          [many/sep+/p (parser? parser? . -> . parser?)]))
+          [many/sep+/p (parser? parser? . -> . parser?)]
+          [guard/p (->* [parser? (any/c . -> . any/c)]
+                        [(or/c string? #f) (any/c . -> . any/c)]
+                        parser?)]))
 
 (define (many*/p p)
   (or/p (lazy/p (many+/p p)) (pure '())))
@@ -34,3 +37,12 @@
   (do [x <- p]
       [xs <- (many*/p (do sep p))]
       (pure (cons x xs))))
+
+(define (guard/p p pred? [expected #f] [mk-unexpected values])
+  (do [s <- (syntax-box/p p)]
+      (define v (syntax-box-datum s))
+      (if (pred? v)
+          (pure v)
+          (fail/p (message (syntax-box-srcloc s)
+                           (mk-unexpected v)
+                           (if expected (list expected) '()))))))

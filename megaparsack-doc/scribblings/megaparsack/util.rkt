@@ -27,7 +27,8 @@
                                   racket/base
                                   racket/contract
                                   racket/function))
-         reftech functech make-parser-eval parser-interaction define-parser-interaction)
+         reftech functech
+         make-parser-eval parser-examples parser-interaction define-parser-interaction)
 
 (define (reftech . content)
   (apply tech #:doc '(lib "scribblings/reference/reference.scrbl") content))
@@ -50,8 +51,11 @@
                     racket/function))
     eval))
 
+(define-syntax-rule (parser-examples body ...)
+  (examples #:eval (make-parser-eval) body ...))
+
 (define-syntax-rule (parser-interaction body ...)
-  (examples #:eval (make-parser-eval) #:label #f body ...))
+  (parser-examples #:label #f body ...))
 
 (define-syntax-rule (define-parser-interaction interaction close-interaction!)
   (begin

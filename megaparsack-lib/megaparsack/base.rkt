@@ -13,6 +13,7 @@
 (provide lazy/p
          (contract-out
           [struct syntax-box ([datum any/c] [srcloc srcloc?])]
+          [struct message ([srcloc srcloc?] [unexpected any/c] [expected (listof string?)])]
 
           [parser? (any/c . -> . boolean?)]
           [parser/c (contract? contract? . -> . contract?)]
@@ -29,9 +30,11 @@
           [try/p (parser?* . -> . parser?*)]
           [satisfy/p ((any/c . -> . any/c) . -> . parser?*)]
           [eof/p (parser/c any/c void?)]
+          [syntax-box/p (parser?* . -> . (parser/c any/c syntax-box?))]
           [syntax/p (parser?* . -> . (parser/c any/c syntax?))]
           [label/p (string? parser?* . -> . parser?*)]
-          [hidden/p (parser?* . -> . parser?*)]))
+          [hidden/p (parser?* . -> . parser?*)]
+          [fail/p (message? . -> . parser?*)]))
 
 ;; supporting types
 ;; ---------------------------------------------------------------------------------------------------
@@ -265,8 +268,18 @@
      ['()                               (parse void/p '())]
      [(list (syntax-box c loc) _ ...)   (empty (error (message loc c '("end of input"))))])))
 
-;; source location reification (syntax/p)
+;; source location reification (syntax-box/p & syntax/p)
 ;; ---------------------------------------------------------------------------------------------------
+
+(define (syntax-box/p p)
+  (parser
+   (λ (input)
+     (match (parse p input)
+       [(consumed (ok {and box (syntax-box datum srcloc)} rest message))
+        (consumed (ok (syntax-box box srcloc) rest message))]
+       [(empty (ok {and box (syntax-box datum srcloc)} rest message))
+        (empty (ok (syntax-box box srcloc) rest message))]
+       [error error]))))
 
 (define (syntax/p p)
   (parser
@@ -302,3 +315,9 @@
        [(empty (error message))     (empty (error (hide message)))]
        [(empty (ok x rest message)) (empty (ok x rest (hide message)))]
        [other                       other]))))
+
+;; custom failure messages (fail/p)
+;; ---------------------------------------------------------------------------------------------------
+
+(define (fail/p msg)
+  (parser (λ (input) (empty (error msg)))))

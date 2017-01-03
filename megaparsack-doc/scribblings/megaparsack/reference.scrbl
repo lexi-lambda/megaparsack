@@ -50,6 +50,13 @@ as the result of lexing. It is unlikely that you will need to create @racket[syn
 yourself; rather, use higher-level functions like @racket[parse-string] that create these values for
 you.}
 
+@defstruct*[message ([srcloc srcloc?] [unexpected any/c] [expected (listof string?)]) #:transparent]{
+Represents a parse error. Generally you will not need to construct or use these yourself, since they
+will be automatically constructed when parsers fail, and you can convert them to a human-readable
+error message using @racket[parse-error->string]. For more complicated use cases, though, you may want
+to raise custom parse errors using @racket[fail/p] or format your own error messages, so you can use
+this structure directly.}
+
 @defthing[void/p (parser/c any/c void?)]{
 A parser that always succeeds and always returns @|void-const|.}
 
@@ -95,6 +102,16 @@ The @racket[syntax/p] combinator makes source location wrapping opt-in, which is
 often useful to return values from combinators that are intermediate values not intended to be wrapped
 in syntax (for example, @racket[many*/p] returns a list of results, not a syntax list).}
 
+@defproc[(syntax-box/p [parser parser?]) (parser/c any/c syntax-box?)]{
+Like @racket[syntax/p], but wraps the result in a @racket[syntax-box] instead of a @reftech{syntax
+object}. This is useful if you want to get the source location information from a parse result, but
+you want to ensure the underlying datum remains untouched.}
+
+@defproc[(fail/p [msg message?]) (parser/c any/c none/c)]{
+Produces a parser that always fails and produces @racket[msg] as the error message. This is the
+lowest-level way to report errors, but many cases in which you would want to raise a custom failure
+message can be replaced with @racket[guard/p] instead, which is slightly higher level.}
+
 @defproc[(many*/p [parser parser?]) (parser/c list?)]{
 Produces a parser that attempts @racket[parser] zero or more times and returns a list of the results.}
 
@@ -119,6 +136,24 @@ successful @racket[sep] parse.}
 Produces a parser that attempts @racket[parser] one or more times, each parse separated by
 @racket[sep]. It returns a list of successful @racket[parser] parses but discards the results of each
 successful @racket[sep] parse.}
+
+@defproc[(guard/p [parser parser?] [pred? (any/c . -> . any/c)]
+                  [expected (or/c string? #f) #f] [make-unexpected (any/c . -> . any/c) identity])
+         parser?]{
+Produces a parser that runs @racket[parser], then applies a guard predicate @racket[pred?] to the
+result. If the result of @racket[pred?] is @racket[#f], then the parser fails, otherwise the parser
+succeeds and produces the same result as @racket[parser].
+
+If the parser fails and @racket[expected] is a string, then @racket[expected] is used to add
+expected information to the parser error. Additionally, the @racket[make-unexpected] function is
+applied to the result of @racket[parser] to produce the @racket[unexpected] field of the parse error.
+
+@(parser-examples
+  (define small-integer/p
+    (guard/p integer/p (λ (x) (<= x 100))
+             "integer in range [0,100]"))
+  (eval:check (parse-result! (parse-string small-integer/p "42")) 42)
+  (eval:error (parse-result! (parse-string small-integer/p "300"))))}
 
 @section[#:tag "parsing-text"]{Parsing Text}
 

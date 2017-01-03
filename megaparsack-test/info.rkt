@@ -8,6 +8,8 @@
   '())
 (define build-deps
   '("base"
+    "curly-fn-lib"
+    "functional-lib"
     "megaparsack-lib"
     "megaparsack-parser"
     "rackunit-lib"
