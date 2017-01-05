@@ -15,7 +15,7 @@
           [struct syntax-box ([datum any/c] [srcloc srcloc?])]
           [struct message ([srcloc srcloc?] [unexpected any/c] [expected (listof string?)])]
 
-          [parser? (any/c . -> . boolean?)]
+          [rename parser?* parser? (any/c . -> . boolean?)]
           [parser/c (contract? contract? . -> . contract?)]
 
           [rename parse-datum parse (parser?* (listof syntax-box?) . -> . (either/c message? any/c))]
