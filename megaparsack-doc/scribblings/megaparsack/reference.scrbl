@@ -155,6 +155,25 @@ applied to the result of @racket[parser] to produce the @racket[unexpected] fiel
   (eval:check (parse-result! (parse-string small-integer/p "42")) 42)
   (eval:error (parse-result! (parse-string small-integer/p "300"))))}
 
+@defproc[(list/p [parser parser?] ... [#:separator sep parser? void/p]) (parser/c any? list?)]{
+ Returns a @tech{parser} that runs each @racket[parser] in sequence separated by @racket[sep] and
+ produces a list containing the results of each @racket[parser]. The results of @racket[sep] are
+ ignored.
+
+ @(parser-examples
+   (define dotted-let-digit-let/p
+     (list/p letter/p digit/p letter/p #:separator (char/p #\.)))
+   (eval:check (parse-result! (parse-string dotted-let-digit-let/p "a.1.b")) (list #\a #\1 #\b))
+   (eval:error (parse-result! (parse-string dotted-let-digit-let/p "a1c")))
+   (eval:error (parse-result! (parse-string dotted-let-digit-let/p "a.1"))))
+
+ Using a separator parser that consumes no input (such as the default separator, @racket[void/p]) is
+ equivalent to not using a separator at all.
+
+ @(parser-examples
+   (define let-digit-let/p (list/p letter/p digit/p letter/p))
+   (eval:check (parse-result! (parse-string let-digit-let/p "a1b")) (list #\a #\1 #\b)))}
+
 @section[#:tag "parsing-text"]{Parsing Text}
 
 @defmodule[megaparsack/text]
