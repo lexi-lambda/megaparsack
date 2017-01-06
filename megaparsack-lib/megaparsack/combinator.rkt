@@ -7,6 +7,11 @@
          racket/list)
 
 (provide (contract-out
+          [many/p (->* [parser?]
+                       [#:separator parser?
+                        #:min-count exact-nonnegative-integer?
+                        #:max-count (or/c exact-nonnegative-integer? +inf.0)]
+                       (parser/c any/c list?))]
           [many*/p (parser? . -> . parser?)]
           [many+/p (parser? . -> . parser?)]
           [repeat/p (exact-nonnegative-integer? parser? . -> . (parser/c any/c list?))]
@@ -58,3 +63,25 @@
         [else
          ((pure list*) (do [v <- (first ps)] sep (pure v))
                        (apply list/p #:separator sep (rest ps)))]))
+
+(define (many/p p
+                #:separator [sep void/p]
+                #:min-count [min-count 0]
+                #:max-count [max-count +inf.0])
+  (define (loop-mandatory p
+                          #:min-count [min-count min-count]
+                          #:max-count [max-count max-count]
+                          #:recur-parser [recur p])
+    (cond [(zero? min-count) (loop-optional p max-count #:recur-parser recur)]
+          [else
+           (define rest/p
+             (loop-mandatory recur
+                             #:min-count (sub1 min-count)
+                             #:max-count (sub1 max-count)))
+           ((pure cons) p rest/p)]))
+  (define (loop-optional p max-count #:recur-parser [recur p])
+    (if (zero? max-count)
+        (pure '())
+        (or/p (lazy/p ((pure cons) p (loop-optional recur (sub1 max-count))))
+              (pure '()))))
+  (loop-mandatory p #:recur-parser (do sep p)))
