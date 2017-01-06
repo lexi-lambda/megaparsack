@@ -100,7 +100,7 @@ to add a sort of automated source location tracking to their output.
 
 The @racket[syntax/p] combinator makes source location wrapping opt-in, which is desirable since it is
 often useful to return values from combinators that are intermediate values not intended to be wrapped
-in syntax (for example, @racket[many*/p] returns a list of results, not a syntax list).}
+in syntax (for example, @racket[many/p] returns a list of results, not a syntax list).}
 
 @defproc[(syntax-box/p [parser parser?]) (parser/c any/c syntax-box?)]{
 Like @racket[syntax/p], but wraps the result in a @racket[syntax-box] instead of a @reftech{syntax
@@ -131,30 +131,10 @@ list of results of successful attempts of @racket[parser]. Results of @racket[se
   (eval:error (parse-result! (parse-string dotted-letters/p "a")))
   (eval:check (parse-result! (parse-string dotted-letters/p "a.b.c.d.e")) (list #\a #\b #\c #\d)))}
 
-@defproc[(many*/p [parser parser?]) (parser/c list?)]{
-Produces a parser that attempts @racket[parser] zero or more times and returns a list of the results.}
-
-@defproc[(many+/p [parser parser?]) parser?]{
-Produces a parser that attempts @racket[parser] one or more times and returns a list of the results.}
-
-@defproc[(repeat/p [n exact-nonnegative-integer?] [parser parser?]) (parser/c any/c list?)]{
-Produces a parser that attempts @racket[parser] @emph{exactly} @racket[n] times and returns a list of
-the results.}
-
 @defproc[(==/p [v any/c] [=? (any/c any/c . -> . any/c) equal?]) parser?]{
 Produces a parser that succeeds when a single datum is equal to @racket[v], as determined by
 @racket[=?]. Like @racket[satisfy/p], it consumes a single datum upon success but does not consume
 anything upon failure.}
-
-@defproc[(many/sep*/p [parser parser?] [sep parser?]) parser?]{
-Produces a parser that attempts @racket[parser] zero or more times, each parse separated by
-@racket[sep]. It returns a list of successful @racket[parser] parses but discards the results of each
-successful @racket[sep] parse.}
-
-@defproc[(many/sep+/p [parser parser?] [sep parser?]) parser?]{
-Produces a parser that attempts @racket[parser] one or more times, each parse separated by
-@racket[sep]. It returns a list of successful @racket[parser] parses but discards the results of each
-successful @racket[sep] parse.}
 
 @defproc[(guard/p [parser parser?] [pred? (any/c . -> . any/c)]
                   [expected (or/c string? #f) #f] [make-unexpected (any/c . -> . any/c) identity])
@@ -192,6 +172,36 @@ applied to the result of @racket[parser] to produce the @racket[unexpected] fiel
  @(parser-examples
    (define let-digit-let/p (list/p letter/p digit/p letter/p))
    (eval:check (parse-result! (parse-string let-digit-let/p "a1b")) (list #\a #\1 #\b)))}
+
+@section{Deprecated Variants of @racket[many/p]}
+
+In previous versions of @racket[megaparsack], the current functionality of @racket[many/p] was
+divided between several different procedures. These procedures are still provided by
+@racket[megaparsack], but they are considered deprecated. Prefer calling @racket[many/p] with
+appropriate keyword arguments instead of using these procedures.
+
+@defproc[(many*/p [parser parser?]) (parser/c list?)]{
+Produces a parser that attempts @racket[parser] zero or more times and returns a list of the
+results. Equivalent to @racket[(many/p parser)].}
+
+@defproc[(many+/p [parser parser?]) parser?]{
+Produces a parser that attempts @racket[parser] one or more times and returns a list of the results.
+Equivalent to @racket[(many/p parser #:min-count 1)].}
+
+@defproc[(repeat/p [n exact-nonnegative-integer?] [parser parser?]) (parser/c any/c list?)]{
+Produces a parser that attempts @racket[parser] @emph{exactly} @racket[n] times and returns a list
+of the results. Equivalent to @racket[(many/p parser #:min-count n #:max-count n)].}
+
+@defproc[(many/sep*/p [parser parser?] [sep parser?]) parser?]{
+Produces a parser that attempts @racket[parser] zero or more times, each parse separated by
+@racket[sep]. It returns a list of successful @racket[parser] parses but discards the results of
+each successful @racket[sep] parse. Equivalent to @racket[(many/p parser #:separator sep)].}
+
+@defproc[(many/sep+/p [parser parser?] [sep parser?]) parser?]{
+Produces a parser that attempts @racket[parser] one or more times, each parse separated by
+@racket[sep]. It returns a list of successful @racket[parser] parses but discards the results of
+each successful @racket[sep] parse. Equivalent to
+ @racket[(many/p parser #:separator sep #:min-count 1)].}
 
 @section[#:tag "parsing-text"]{Parsing Text}
 
