@@ -112,6 +112,25 @@ Produces a parser that always fails and produces @racket[msg] as the error messa
 lowest-level way to report errors, but many cases in which you would want to raise a custom failure
 message can be replaced with @racket[guard/p] instead, which is slightly higher level.}
 
+@defproc[(many/p [parser parser?]
+                 [#:separator sep parser? void/p]
+                 [#:min-count min-count exact-nonnegative-integer? 0]
+                 [#:max-count max-count (or/c exact-nonnegative-integer? +inf.0) +inf.0])
+         (parser/c any/c list?)]{
+Produces a parser that attempts @racket[parser] at least @racket[min-count] times and at most
+@racket[max-count] times, with attempts separated by @racket[sep]. The returned parser produces a
+list of results of successful attempts of @racket[parser]. Results of @racket[sep] are ignored.
+
+@(parser-examples
+  (define letters/p (many/p letter/p))
+  (eval:check (parse-result! (parse-string letters/p "abc")) (list #\a #\b #\c))
+  (define dotted-letters/p
+    (many/p letter/p #:separator (char/p #\.) #:min-count 2 #:max-count 4))
+  (eval:check (parse-result! (parse-string dotted-letters/p "a.b.c")) (list #\a #\b #\c))
+  (eval:error (parse-result! (parse-string dotted-letters/p "abc")))
+  (eval:error (parse-result! (parse-string dotted-letters/p "a")))
+  (eval:check (parse-result! (parse-string dotted-letters/p "a.b.c.d.e")) (list #\a #\b #\c #\d)))}
+
 @defproc[(many*/p [parser parser?]) (parser/c list?)]{
 Produces a parser that attempts @racket[parser] zero or more times and returns a list of the results.}
 
