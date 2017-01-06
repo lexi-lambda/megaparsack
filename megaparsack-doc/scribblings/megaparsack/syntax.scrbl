@@ -44,8 +44,7 @@ parses a list of comma-delimited numbers surrounded by brackets:
 @(syntax-interaction
   (define integer-list/p
     (do (char/p #\[)
-        [ints <- (many/sep*/p (syntax/p integer/p)
-                              (char/p #\,))]
+        [ints <- (many/p (syntax/p integer/p) #:sep (char/p #\,))]
         (char/p #\])
         (pure ints))))
 
@@ -129,7 +128,7 @@ of the heavy lifting is already done, and we can just focus on assigning semanti
     (syntax/p
      (do [func <- identifier/p]
          (token/p 'OPEN-PAREN)
-         [args <- (many/sep*/p expression/p (token/p 'COMMA))]
+         [args <- (many/p expression/p #:sep (token/p 'COMMA))]
          (token/p 'CLOSE-PAREN)
          (pure (list* func args)))))
   (code:comment @#,elem{an expression can be a number or a function invokation})
