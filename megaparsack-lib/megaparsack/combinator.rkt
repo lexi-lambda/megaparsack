@@ -3,7 +3,8 @@
 (require data/applicative
          data/monad
          megaparsack/base
-         racket/contract)
+         racket/contract
+         racket/list)
 
 (provide (contract-out
           [many*/p (parser? . -> . parser?)]
@@ -14,7 +15,11 @@
           [many/sep+/p (parser? parser? . -> . parser?)]
           [guard/p (->* [parser? (any/c . -> . any/c)]
                         [(or/c string? #f) (any/c . -> . any/c)]
-                        parser?)]))
+                        parser?)]
+          [list/p (->* []
+                       [#:separator parser?]
+                       #:rest (listof parser?)
+                       (parser/c any/c list?))]))
 
 (define (many*/p p)
   (or/p (lazy/p (many+/p p)) (pure '())))
@@ -46,3 +51,10 @@
           (fail/p (message (syntax-box-srcloc s)
                            (mk-unexpected v)
                            (if expected (list expected) '()))))))
+
+(define (list/p #:separator [sep void/p] . ps)
+  (cond [(empty? ps) (pure '())]
+        [(empty? (rest ps)) ((pure list) (first ps))]
+        [else
+         ((pure list*) (do [v <- (first ps)] sep (pure v))
+                       (apply list/p #:separator sep (rest ps)))]))
