@@ -8,12 +8,27 @@
 
 (define spaces/p (many*/p (hidden/p space/p)))
 
-(define positive-number/p
+(define positive-decimal/p
   (or/p (try/p (do [i <- (or/p integer/p (pure 0))]
                    (char/p #\.)
-                   [f <- integer/p]
-                   (pure (string->number (format "~a.~a" i f)))))
+                   [fs <- (many+/p digit/p)]
+                   (define f (string->number (list->string fs)))
+                   (pure (+ i (/ f (expt 10 (length fs)))))))
         integer/p))
+
+(define exponent/p
+  (do (char-ci/p #\e)
+      [negate? <- (or/p (do (char/p #\+) (pure #f))
+                        (do (char/p #\-) (pure #t))
+                        (pure #f))]
+      [i <- integer/p]
+      (pure (if negate? (- i) i))))
+
+(define positive-number/p
+  (do [n <- positive-decimal/p]
+      [exp <- (or/p (try/p exponent/p)
+                    (pure 0))]
+      (pure (* n (expt 10 exp)))))
 
 (define number/p
   (label/p
@@ -63,7 +78,7 @@
    (do (char/p #\")
        [chars <- (many*/p string-char-or-escape/p)]
        (char/p #\")
-       (pure (apply string chars)))))
+       (pure (list->string chars)))))
 
 (define boolean/p
   (label/p
@@ -97,7 +112,7 @@
   (label/p
    "array"
    (do (char/p #\[)
-       [elems <- (many/sep*/p (do spaces/p value/p) (char/p #\,))]
+       [elems <- (many/sep*/p value/p (try/p (do spaces/p (char/p #\,))))]
        spaces/p
        (char/p #\])
        (pure elems))))
@@ -113,6 +128,7 @@
 
 (define entire-value/p
   (do [v <- value/p]
+      spaces/p
       eof/p
       (pure v)))
 

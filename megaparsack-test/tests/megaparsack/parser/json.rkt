@@ -8,9 +8,11 @@
 
 (describe "parse-json-string"
   (it "parses floating-point numbers"
-    (check-= (parse-result! (parse-json-string "42")) 42 0.01)
-    (check-= (parse-result! (parse-json-string ".3")) 0.3 0.01)
-    (check-= (parse-result! (parse-json-string "12.75")) 12.75 0.01))
+    (check-= (parse-result! (parse-json-string "42")) 42 0.001)
+    (check-= (parse-result! (parse-json-string ".3")) 0.3 0.001)
+    (check-= (parse-result! (parse-json-string "12.75")) 12.75 0.001)
+    (check-= (parse-result! (parse-json-string "1e+2")) 100 0.001)
+    (check-= (parse-result! (parse-json-string "1.2e-3")) 0.0012 0.00001))
 
   (it "parses strings"
     (check-equal? (parse-result! (parse-json-string "\"hello, world\"")) "hello, world")
