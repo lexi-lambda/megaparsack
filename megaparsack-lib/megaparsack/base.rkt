@@ -4,7 +4,7 @@
          (multi-in data [functor applicative monad either])
          (prefix-in d: data/applicative)
          match-plus
-         (multi-in racket [contract function list match port string])
+         (multi-in racket [contract function generic list match port string])
          (prefix-in r: racket/base)
          (submod data/applicative coerce-delayed)
          (for-syntax racket/base
@@ -60,9 +60,10 @@
 
 (struct parser (proc)
   #:methods gen:functor
-  [(define (map f p)
-     (parser (compose (match-lambda [(consumed (ok v rest message)) (consumed (ok (map f v) rest message))]
-                                    [(empty (ok v rest message))    (empty (ok (map f v) rest message))]
+  [(define/generic -map map)
+   (define (map f p)
+     (parser (compose (match-lambda [(consumed (ok v rest message)) (consumed (ok (-map f v) rest message))]
+                                    [(empty (ok v rest message))    (empty (ok (-map f v) rest message))]
                                     [error                          error])
                       (parser-proc p))))]
 
@@ -171,9 +172,6 @@
 (define/match* (syntax-box->syntax (syntax-box datum (srcloc name line col pos span)))
   (datum->syntax #f datum (list name line col pos span) some-original-syntax))
 
-(define (make-syntax datum srcloc)
-  (syntax-box->syntax (syntax-box datum srcloc)))
-
 (define (merge-srclocs srcloc-a srcloc-b)
   (match (sort (list srcloc-a srcloc-b) < #:key (λ (x) (or (srcloc-position x) -1)))
     [(list (srcloc name-a line-a col-a pos-a span-a) (srcloc name-b line-b col-b pos-b span-b))
@@ -270,21 +268,14 @@
   (parser
    (λ (input)
      (match (parse p input)
-       [(consumed (ok {and box (syntax-box datum srcloc)} rest message))
+       [(consumed (ok {and box (syntax-box _ srcloc)} rest message))
         (consumed (ok (syntax-box box srcloc) rest message))]
-       [(empty (ok {and box (syntax-box datum srcloc)} rest message))
+       [(empty (ok {and box (syntax-box _ srcloc)} rest message))
         (empty (ok (syntax-box box srcloc) rest message))]
        [error error]))))
 
 (define (syntax/p p)
-  (parser
-   (λ (input)
-     (match (parse p input)
-       [(consumed (ok (syntax-box datum srcloc) rest message))
-        (consumed (ok (syntax-box (make-syntax datum srcloc) srcloc) rest message))]
-       [(empty (ok (syntax-box datum srcloc) rest message))
-        (empty (ok (syntax-box (make-syntax datum srcloc) srcloc) rest message))]
-       [error error]))))
+  (map syntax-box->syntax (syntax-box/p p)))
 
 ;; parser annotation (label/p & hidden/p)
 ;; ---------------------------------------------------------------------------------------------------
