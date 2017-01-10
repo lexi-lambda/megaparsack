@@ -50,12 +50,7 @@
 
 (struct error (message) #:transparent)
 (struct ok (result rest message) #:transparent)
-(struct message (srcloc unexpected expected)
-  #:transparent
-  #:methods gen:custom-write
-  [(define/match* (write-proc (message srcloc unexpected expected) out mode)
-     (fprintf out (if mode "(message ~v ~v ~v)" "(message ~a ~a ~a)")
-              srcloc unexpected expected))])
+(struct message (srcloc unexpected expected) #:transparent)
 
 (define empty-srcloc (srcloc #f #f #f #f #f))
 (define empty-message (message empty-srcloc #f '()))
