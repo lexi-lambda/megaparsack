@@ -232,6 +232,15 @@ Parses a single character that is between @racket[low] and @racket[high] accordi
 
 @history[#:added "1.2"]}
 
+@defproc[(char-in/p [alphabet string?]) (parser/c char? char?)]{
+Returns a parser that parses a single character that is in @racket[alphabet].
+                                                            
+@(parser-examples
+  (eval:check (parse-result! (parse-string (char-in/p "aeiou") "i")) #\i)
+  (eval:error (parse-result! (parse-string (char-in/p "aeiou") "z"))))
+
+@history[#:added "1.2"]}
+
 @defthing[letter/p (parser/c char? char?)]{
 Parses an alphabetic letter, as determined by @racket[char-alphabetic?].}
 

@@ -26,3 +26,11 @@
     (check-equal? (parse-string (char-between/p #\b #\f) "g")
                   (failure (message (srcloc 'string 1 0 1 1) #\g
                                     '("a character between 'b' and 'f'"))))))
+
+(describe "char-in/p"
+  (it "parses a single character"
+    (check-equal? (parse-string (char-in/p "aeiou") "a") (success #\a)))
+  (it "parses only characters in the given string"
+    (check-equal? (parse-string (char-in/p "aeiou") "b")
+                  (failure (message (srcloc 'string 1 0 1 1) #\b
+                                    '("'a'" "'e'" "'i'" "'o'" "'u'"))))))
