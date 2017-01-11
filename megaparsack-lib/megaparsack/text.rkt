@@ -15,6 +15,7 @@
           [char/p (char? . -> . (parser/c char? char?))]
           [char-ci/p (char? . -> . (parser/c char? char?))]
           [char-between/p (char? char? . -> . (parser/c char? char?))]
+          [char-in/p (string? . -> . (parser/c char? char?))]
           [letter/p (parser/c char? char?)]
           [digit/p (parser/c char? char?)]
           [symbolic/p (parser/c char? char?)]
@@ -62,3 +63,7 @@
 
 (define (char-between/p low high)
   (label/p (format "character between '~a and '~a" low high) (satisfy/p #{char<=? low % high})))
+
+(define (char-in/p str)
+  (define chars (string->list str))
+  (label/p (format "character in ~v" str) (satisfy/p #{member % chars})))
