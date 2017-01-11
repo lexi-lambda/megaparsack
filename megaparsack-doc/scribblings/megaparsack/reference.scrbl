@@ -113,9 +113,9 @@ lowest-level way to report errors, but many cases in which you would want to rai
 message can be replaced with @racket[guard/p] instead, which is slightly higher level.}
 
 @defproc[(many/p [parser parser?]
-                 [#:separator sep parser? void/p]
-                 [#:min-count min-count exact-nonnegative-integer? 0]
-                 [#:max-count max-count (or/c exact-nonnegative-integer? +inf.0) +inf.0])
+                 [#:sep sep parser? void/p]
+                 [#:min min-count exact-nonnegative-integer? 0]
+                 [#:max max-count (or/c exact-nonnegative-integer? +inf.0) +inf.0])
          (parser/c any/c list?)]{
 Produces a parser that attempts @racket[parser] at least @racket[min-count] times and at most
 @racket[max-count] times, with attempts separated by @racket[sep]. The returned parser produces a
@@ -125,11 +125,18 @@ list of results of successful attempts of @racket[parser]. Results of @racket[se
   (define letters/p (many/p letter/p))
   (eval:check (parse-result! (parse-string letters/p "abc")) (list #\a #\b #\c))
   (define dotted-letters/p
-    (many/p letter/p #:separator (char/p #\.) #:min-count 2 #:max-count 4))
+    (many/p letter/p #:sep (char/p #\.) #:min 2 #:max 4))
   (eval:check (parse-result! (parse-string dotted-letters/p "a.b.c")) (list #\a #\b #\c))
   (eval:error (parse-result! (parse-string dotted-letters/p "abc")))
   (eval:error (parse-result! (parse-string dotted-letters/p "a")))
   (eval:check (parse-result! (parse-string dotted-letters/p "a.b.c.d.e")) (list #\a #\b #\c #\d)))}
+
+@defproc[(many+/p [parser parser?]
+                  [#:sep sep parser? void/p]
+                  [#:max max-count (or/c exact-nonnegative-integer? +inf.0) +inf.0])
+         (parser/c any/c list?)]{
+Like @racket[many/p], but attempts @racket[parser] at least once. Equivalent to
+@racket[(many/p parser #:sep sep #:min 1 #:max max-count)].}
 
 @defproc[(==/p [v any/c] [=? (any/c any/c . -> . any/c) equal?]) parser?]{
 Produces a parser that succeeds when a single datum is equal to @racket[v], as determined by
@@ -154,14 +161,14 @@ applied to the result of @racket[parser] to produce the @racket[unexpected] fiel
   (eval:check (parse-result! (parse-string small-integer/p "42")) 42)
   (eval:error (parse-result! (parse-string small-integer/p "300"))))}
 
-@defproc[(list/p [parser parser?] ... [#:separator sep parser? void/p]) (parser/c any? list?)]{
+@defproc[(list/p [parser parser?] ... [#:sep sep parser? void/p]) (parser/c any? list?)]{
  Returns a @tech{parser} that runs each @racket[parser] in sequence separated by @racket[sep] and
  produces a list containing the results of each @racket[parser]. The results of @racket[sep] are
  ignored.
 
  @(parser-examples
    (define dotted-let-digit-let/p
-     (list/p letter/p digit/p letter/p #:separator (char/p #\.)))
+     (list/p letter/p digit/p letter/p #:sep (char/p #\.)))
    (eval:check (parse-result! (parse-string dotted-let-digit-let/p "a.1.b")) (list #\a #\1 #\b))
    (eval:error (parse-result! (parse-string dotted-let-digit-let/p "a1c")))
    (eval:error (parse-result! (parse-string dotted-let-digit-let/p "a.1"))))
@@ -184,24 +191,20 @@ appropriate keyword arguments instead of using these procedures.
 Produces a parser that attempts @racket[parser] zero or more times and returns a list of the
 results. Equivalent to @racket[(many/p parser)].}
 
-@defproc[(many+/p [parser parser?]) parser?]{
-Produces a parser that attempts @racket[parser] one or more times and returns a list of the results.
-Equivalent to @racket[(many/p parser #:min-count 1)].}
-
 @defproc[(repeat/p [n exact-nonnegative-integer?] [parser parser?]) (parser/c any/c list?)]{
 Produces a parser that attempts @racket[parser] @emph{exactly} @racket[n] times and returns a list
-of the results. Equivalent to @racket[(many/p parser #:min-count n #:max-count n)].}
+of the results. Equivalent to @racket[(many/p parser #:min n #:max n)].}
 
 @defproc[(many/sep*/p [parser parser?] [sep parser?]) parser?]{
 Produces a parser that attempts @racket[parser] zero or more times, each parse separated by
 @racket[sep]. It returns a list of successful @racket[parser] parses but discards the results of
-each successful @racket[sep] parse. Equivalent to @racket[(many/p parser #:separator sep)].}
+each successful @racket[sep] parse. Equivalent to @racket[(many/p parser #:sep sep)].}
 
 @defproc[(many/sep+/p [parser parser?] [sep parser?]) parser?]{
 Produces a parser that attempts @racket[parser] one or more times, each parse separated by
 @racket[sep]. It returns a list of successful @racket[parser] parses but discards the results of
 each successful @racket[sep] parse. Equivalent to
- @racket[(many/p parser #:separator sep #:min-count 1)].}
+ @racket[(many/p parser #:sep sep #:min 1)].}
 
 @section[#:tag "parsing-text"]{Parsing Text}
 

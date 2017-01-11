@@ -189,33 +189,33 @@ it fails. For example, here is a parser that parses any number of occurrences of
   (eval:check (parse-string (many/p (char/p #\a)) "aaaa") (success '(#\a #\a #\a #\a))))
 
 This allows creating grammars that parse arbitrary numbers of values. The @racket[many/p] combinator
-accepts an optional keyword argument @racket[#:min-count] to specify a minimum number of values to
+accepts an optional keyword argument @racket[#:min] to specify a minimum number of values to
 parse. This can be used to parse two integers separated by some amount of whitespace, for example.
 
 @(parser-interaction
   (define two-integers/p
     (do [x <- integer/p]
-        (many/p space/p #:min-count 1)
+        (many/p space/p #:min 1)
         [y <- integer/p]
         (pure (list x y))))
   (eval:check (parse-string two-integers/p "13     102") (success '(13 102))))
 
 Perhaps even more frequently, though, you may want to parse some number of values separated by some
 delimiter. For example, perhaps you want to parse a whole list of integers separated by commas. That
-can be accomplished by passing a parser for the @racket[#:separator] argument to @racket[many/p].
+can be accomplished by passing a parser for the @racket[#:sep] argument to @racket[many/p].
 
 @(parser-interaction
   (define many-integers/p
-    (many/p integer/p #:separator (char/p #\,)))
+    (many/p integer/p #:sep (char/p #\,)))
   (eval:check (parse-string many-integers/p "1,2,3,5,8,13") (success '(1 2 3 5 8 13))))
 
-Often an unbounded number of values is undesirable: some limit is desired. The @racket[#:max-count]
+Often an unbounded number of values is undesirable: some limit is desired. The @racket[#:max]
 argument to @racket[many/p] allows specifying a max number of values to parse. For example, we may
 not wish to allow more than five comma-separated integers.
 
 @(parser-interaction
   (define at-most-five-integers/p
-    (many/p integer/p #:separator (char/p #\,) #:max-count 5))
+    (many/p integer/p #:sep (char/p #\,) #:max 5))
   (eval:check (parse-string at-most-five-integers/p "1,2,3") (success '(1 2 3)))
   (eval:check (parse-string at-most-five-integers/p "1,2,3,5,8,13") (success '(1 2 3 5 8))))
 

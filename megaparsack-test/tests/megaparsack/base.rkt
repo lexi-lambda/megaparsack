@@ -40,7 +40,7 @@
                                       '("letter"))))))
   (context "when given a separator"
     (define dotted-letter-digit-letter/p
-      (list/p letter/p digit/p letter/p #:separator (char/p #\.)))
+      (list/p letter/p digit/p letter/p #:sep (char/p #\.)))
     (it "succeeds when given separated components"
       (check-equal? (parse-string dotted-letter-digit-letter/p "a.1.b")
                     (success (list #\a #\1 #\b))))
@@ -62,12 +62,12 @@
       (check-equal? (parse-string many-letters/p "123")
                     (success (list)))))
   (context "when given a letter parser and dot separator"
-    (define many-dotted-letters/p (many/p letter/p #:separator (char/p #\.)))
+    (define many-dotted-letters/p (many/p letter/p #:sep (char/p #\.)))
     (it "succeeds with only letters when parsing dotted letters"
       (check-equal? (parse-string many-dotted-letters/p "a.b.c")
                     (success (list #\a #\b #\c)))))
   (context "when given a letter parser and a maximum count of three"
-    (define at-most-three-letters/p (many/p letter/p #:max-count 3))
+    (define at-most-three-letters/p (many/p letter/p #:max 3))
     (it "succeeds when parsing three letters"
       (check-equal? (parse-string at-most-three-letters/p "abc")
                     (success (list #\a #\b #\c))))
@@ -79,10 +79,10 @@
                     (success (list #\a #\b #\c)))))
   (context "when given a maximum count of zero"
     (it "consumes no input"
-      (check-equal? (parse-string (many/p letter/p #:max-count 0) "abc")
+      (check-equal? (parse-string (many/p letter/p #:max 0) "abc")
                     (success (list)))))
   (context "when given a letter parser and a minimum count of three"
-    (define at-least-three-letters/p (many/p letter/p #:min-count 3))
+    (define at-least-three-letters/p (many/p letter/p #:min 3))
     (it "succeeds when parsing three letters"
       (check-equal? (parse-string at-least-three-letters/p "abc")
                     (success (list #\a #\b #\c))))
@@ -95,7 +95,7 @@
                                       "end of input"
                                       '("letter"))))))
   (context "when given a minimum count of 2 and a maximum count of 4"
-    (define two-to-four-letters/p (many/p letter/p #:min-count 2 #:max-count 4))
+    (define two-to-four-letters/p (many/p letter/p #:min 2 #:max 4))
     (it "succeeds when parsing two letters"
       (check-equal? (parse-string two-to-four-letters/p "ab")
                     (success (list #\a #\b))))
