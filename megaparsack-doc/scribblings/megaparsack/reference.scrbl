@@ -201,17 +201,6 @@ applied to the result of @racket[parser] to produce the @racket[unexpected] fiel
    (define let-digit-let/p (list/p letter/p digit/p letter/p))
    (eval:check (parse-result! (parse-string let-digit-let/p "a1b")) (list #\a #\1 #\b)))}
 
-@section{Deprecated Forms and Functions}
-
-@defproc[(many*/p [parser parser?]) (parser/c list?)]{
-@deprecated[#:what "function" @racket[many/p]]}
-
-@defproc[(many/sep*/p [parser parser?] [sep parser?]) parser?]{
-@deprecated[#:what "function" @racket[(many/p parser #:sep sep)]]}
-
-@defproc[(many/sep+/p [parser parser?] [sep parser?]) parser?]{
-@deprecated[#:what "function" @racket[(many+/p parser #:sep sep)]]}
-
 @section[#:tag "parsing-text"]{Parsing Text}
 
 @defmodule[megaparsack/text]
@@ -291,3 +280,14 @@ Parses a stream of tokens, @racket[tokens], produced from @racket[lexer-src-pos]
 
 @defproc[(token/p [name symbol?]) (parser/c (or/c symbol? token?) any/c)]{
 Produces a parser that expects a single token with @racket[name], as produced by @racket[token-name].}
+
+@section[#:tag "deprecated-forms-and-functions"]{Deprecated Forms and Functions}
+
+@defproc[(many*/p [parser parser?]) (parser/c list?)]{
+@deprecated[#:what "function" @racket[many/p]]}
+
+@defproc[(many/sep*/p [parser parser?] [sep parser?]) parser?]{
+@deprecated[#:what "function" @racket[(many/p parser #:sep sep)]]}
+
+@defproc[(many/sep+/p [parser parser?] [sep parser?]) parser?]{
+@deprecated[#:what "function" @racket[(many+/p parser #:sep sep)]]}
