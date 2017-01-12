@@ -64,6 +64,4 @@
 (define (char-between/p low high)
   (label/p (format "character between '~a and '~a" low high) (satisfy/p #{char<=? low % high})))
 
-(define (char-in/p str)
-  (define chars (string->list str))
-  (label/p (format "character in ~v" str) (satisfy/p #{member % chars})))
+(define (char-in/p str) (apply or/p (map char/p (string->list str))))
