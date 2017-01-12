@@ -31,7 +31,8 @@
                        (parser/c any/c list?))]))
 
 (define (==/p v [=? equal?])
-  (satisfy/p #{=? v %}))
+  (label/p (format "~a" v)
+           (satisfy/p #{=? v %})))
 
 (define (one-of/p vs [=? equal?])
   (apply or/p (map #{==/p % =?} vs)))

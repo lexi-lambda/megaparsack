@@ -25,7 +25,7 @@
 
   (it "fails if none of the provided elements are equal"
     (check-equal? (parse-string (one-of/p '(#\a #\b)) "c")
-                  (failure (message (srcloc 'string 1 0 1 1) #\c '())))))
+                  (failure (message (srcloc 'string 1 0 1 1) #\c '("a" "b"))))))
 
 (describe "guard/p"
   (let ([byte/p (label/p "byte" (try/p (guard/p integer/p #{% . < . 256})))])
