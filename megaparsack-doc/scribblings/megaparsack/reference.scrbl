@@ -152,6 +152,18 @@ Produces a parser that succeeds when a single datum is equal to @racket[v], as d
 @racket[=?]. Like @racket[satisfy/p], it consumes a single datum upon success but does not consume
 anything upon failure.}
 
+@defproc[(one-of/p [vs list?] [=? (any/c any/c . -> . any/c) equal?]) parser?]{
+Like @racket[(or/p (one-of/p _v =?) ...)]. Produces a parser that succeeds when a single datum is
+equal to any of the elements of @racket[vs], as determined by @racket[=?]. Like @racket[satisfy/p],
+it consumes a single datum upon success but does not consume anything upon failure.
+
+@(parser-examples
+  (eval:check (parse-result! (parse-string (one-of/p '(#\a #\b)) "a")) #\a)
+  (eval:check (parse-result! (parse-string (one-of/p '(#\a #\b)) "b")) #\b)
+  (eval:error (parse-result! (parse-string (one-of/p '(#\a #\b)) "c"))))
+
+@history[#:added "1.2"]}
+
 @defproc[(guard/p [parser parser?] [pred? (any/c . -> . any/c)]
                   [expected (or/c string? #f) #f] [make-unexpected (any/c . -> . any/c) identity])
          parser?]{

@@ -21,6 +21,7 @@
           [many/sep*/p (parser? parser? . -> . parser?)]
           [many/sep+/p (parser? parser? . -> . parser?)]
           [==/p (->* [any/c] [(any/c any/c . -> . any/c)] parser?)]
+          [one-of/p (->* [list?] [(any/c any/c . -> . any/c)] parser?)]
           [guard/p (->* [parser? (any/c . -> . any/c)]
                         [(or/c string? #f) (any/c . -> . any/c)]
                         parser?)]
@@ -30,7 +31,10 @@
                        (parser/c any/c list?))]))
 
 (define (==/p v [=? equal?])
-  (satisfy/p #{=? v}))
+  (satisfy/p #{=? v %}))
+
+(define (one-of/p vs [=? equal?])
+  (apply or/p (map #{==/p % =?} vs)))
 
 (define (guard/p p pred? [expected #f] [mk-unexpected values])
   (do [s <- (syntax-box/p p)]

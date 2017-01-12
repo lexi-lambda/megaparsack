@@ -16,6 +16,17 @@
       (check-equal? (parse-string p "")
                     (failure msg)))))
 
+(describe "one-of/p"
+  (it "succeeds if any of the provided elements are equal"
+    (check-equal? (parse-string (one-of/p '(#\a #\b)) "a")
+                  (success #\a))
+    (check-equal? (parse-string (one-of/p '(#\a #\b)) "b")
+                  (success #\b)))
+
+  (it "fails if none of the provided elements are equal"
+    (check-equal? (parse-string (one-of/p '(#\a #\b)) "c")
+                  (failure (message (srcloc 'string 1 0 1 1) #\c '())))))
+
 (describe "guard/p"
   (let ([byte/p (label/p "byte" (try/p (guard/p integer/p #{% . < . 256})))])
     (it "succeeds when the guard predicate is non-#f"
@@ -34,7 +45,6 @@
                     (success (list #\a #\1 #\b))))
     (it "fails when given too few components"
       (check-equal? (parse-string letter-digit-letter/p "a1")
-                    ;; I have no idea why the source locations are lost here
                     (failure (message (srcloc #f #f #f #f #f)
                                       "end of input"
                                       '("letter"))))))
