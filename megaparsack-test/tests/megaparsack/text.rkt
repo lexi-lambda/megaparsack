@@ -31,4 +31,5 @@
     (check-equal? (parse-string (char-in/p "aeiou") "a") (success #\a)))
   (it "parses only characters in the given string"
     (check-equal? (parse-string (char-in/p "aeiou") "b")
-                  (failure (message (srcloc 'string 1 0 1 1) #\b '("character in \"aeiou\""))))))
+                  (failure
+                   (message (srcloc 'string 1 0 1 1) #\b '("'a'" "'e'" "'i'" "'o'" "'u'"))))))
