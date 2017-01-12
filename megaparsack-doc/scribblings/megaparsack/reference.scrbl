@@ -234,6 +234,25 @@ Parses a single datum that is equal to @racket[c].}
 Parses a single datum that is case-insensitively equal to @racket[c], as determined by
 @racket[char-ci=?].}
 
+@defproc[(char-between/p [low char?] [high char?]) (parser/c char? char?)]{
+Parses a single character that is between @racket[low] and @racket[high] according to
+@racket[char<=?].
+
+@(parser-examples
+  (eval:check (parse-result! (parse-string (char-between/p #\a #\z) "d")) #\d)
+  (eval:error (parse-result! (parse-string (char-between/p #\a #\z) "D"))))
+
+@history[#:added "1.2"]}
+
+@defproc[(char-in/p [alphabet string?]) (parser/c char? char?)]{
+Returns a parser that parses a single character that is in @racket[alphabet].
+                                                            
+@(parser-examples
+  (eval:check (parse-result! (parse-string (char-in/p "aeiou") "i")) #\i)
+  (eval:error (parse-result! (parse-string (char-in/p "aeiou") "z"))))
+
+@history[#:added "1.2"]}
+
 @defthing[letter/p (parser/c char? char?)]{
 Parses an alphabetic letter, as determined by @racket[char-alphabetic?].}
 
