@@ -223,7 +223,7 @@
                                         [(empty (ok x rest message-b)) (merge-ok x rest message-a message-b)]
                                         [consumed                      consumed])]
        [(empty (ok x rest message-a)) (match (parse q input)
-                                        [(empty (error message-b))     (merge-error message-a message-b)]
+                                        [(empty (error message-b))     (merge-ok x rest message-a message-b)]
                                         [(empty (ok _ _ message-b))    (merge-ok x rest message-a message-b)]
                                         [consumed                      consumed])]
        [consumed                      consumed]))))

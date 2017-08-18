@@ -1,10 +1,24 @@
 #lang curly-fn racket/base
 
-(require data/either
+(require data/applicative
+         data/either
+         data/monad
          megaparsack
          megaparsack/text
          rackunit
          rackunit/spec)
+
+(describe "or/p"
+  (context "when no parsers consume input"
+    (it "succeeds with the first successful parse"
+      (check-equal? (parse-string (or/p (do eof/p (pure 'eof)) letter/p) "")
+                    (success 'eof))))
+
+  (it "fails when a parser consumes input and fails"
+    (check-equal? (parse-string (or/p (pure 'eof)
+                                      (do letter/p letter/p))
+                                "a")
+                  (failure (message (srcloc 'string 1 0 1 1) "end of input" '("letter"))))))
 
 (describe "fail/p"
   (it "always fails"
