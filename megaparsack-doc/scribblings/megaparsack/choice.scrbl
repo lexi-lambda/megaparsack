@@ -93,7 +93,7 @@ parse is @emph{ambiguous}, or more generally, the choice cannot be determined by
 of lookahead.
 
 To solve this by allowing the parser to backtrack, use the @racket[try/p] combinator, which converts
-a parser into one the backtracks upon failure. We can use this to solve our issue with our parser:
+a parser into one that backtracks upon failure. We can use this to solve our issue with our parser:
 
 @(choice-interaction
   (define backtracking-overlapping/p
