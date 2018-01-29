@@ -39,13 +39,13 @@ Extracts a successful parse value from @racket[result]. If @racket[result] is a 
             #:transparent]{
 Raised by @racket[parse-result!] when given a parse failure.}
 
-@defstruct*[syntax-box ([value any/c] [srcloc srcloc?]) #:transparent]{
+@defstruct*[syntax-box ([datum any/c] [srcloc srcloc?]) #:transparent]{
 Represents a single parsable entity. Just like @reftech{syntax objects}, a @deftech{syntax box}
 associates some source location information with an arbitrary datum. However, unlike ordinary syntax
 objects, values like lists and vectors can be stored in a syntax box without being recursively wrapped
 in additional layers of syntax objects.
 
-The @racket[value] can be anything at all, but usually it is either a character or some token produced
+The @racket[datum] can be anything at all, but usually it is either a character or some token produced
 as the result of lexing. It is unlikely that you will need to create @racket[syntax-box] values
 yourself; rather, use higher-level functions like @racket[parse-string] that create these values for
 you.}
