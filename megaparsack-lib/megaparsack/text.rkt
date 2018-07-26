@@ -42,12 +42,12 @@
                                 (syntax-line stx-string)
                                 (syntax-column stx-string))))
 
-(define (char/p c)    (label/p (format "'~a'" c) (satisfy/p #{char=? c})))
-(define (char-ci/p c) (label/p (format "'~a'" c) (satisfy/p #{char-ci=? c})))
-(define letter/p      (label/p "letter" (satisfy/p char-alphabetic?)))
-(define digit/p       (label/p "number" (satisfy/p char-numeric?)))
-(define symbolic/p    (label/p "symbolic" (satisfy/p char-symbolic?)))
-(define space/p       (label/p "whitespace" (satisfy/p (disjoin char-whitespace? char-blank?))))
+(define (char/p c)    (label/p (format "'~a'" c) (satisfy/p (conjoin char? #{char=? c}))))
+(define (char-ci/p c) (label/p (format "'~a'" c) (satisfy/p (conjoin char? #{char-ci=? c}))))
+(define letter/p      (label/p "letter" (satisfy/p (conjoin char? char-alphabetic?))))
+(define digit/p       (label/p "number" (satisfy/p (conjoin char? char-numeric?))))
+(define symbolic/p    (label/p "symbolic" (satisfy/p (conjoin char? char-symbolic?))))
+(define space/p       (label/p "whitespace" (satisfy/p (conjoin char? (disjoin char-whitespace? char-blank?)))))
 
 (define integer/p
   (label/p "integer"
@@ -63,7 +63,7 @@
 
 (define (char-between/p low high)
   (label/p (format "a character between '~a' and '~a'" low high)
-           (satisfy/p #{char<=? low % high})))
+           (satisfy/p (conjoin char? #{char<=? low % high}))))
 
 (define (char-in/p str)
   (apply or/p (map char/p (string->list str))))
