@@ -16,6 +16,7 @@
           [char-ci/p (char? . -> . (parser/c char? char?))]
           [char-between/p (char? char? . -> . (parser/c char? char?))]
           [char-in/p (string? . -> . (parser/c char? char?))]
+          [any-char/p (parser/c char? char?)]
           [letter/p (parser/c char? char?)]
           [digit/p (parser/c char? char?)]
           [symbolic/p (parser/c char? char?)]

@@ -242,7 +242,7 @@ Returns a parser that parses a single character that is in @racket[alphabet].
 
 @history[#:added "1.2"]}
 
-@defproc[any-char/p (parser/c char? char?)]{
+@defthing[any-char/p (parser/c char? char?)]{
 Returns a parser that parses a single character.
                                                             
 @(parser-examples
