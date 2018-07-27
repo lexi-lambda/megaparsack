@@ -48,6 +48,7 @@
 (define digit/p       (label/p "number" (satisfy/p char-numeric?)))
 (define symbolic/p    (label/p "symbolic" (satisfy/p char-symbolic?)))
 (define space/p       (label/p "whitespace" (satisfy/p (disjoin char-whitespace? char-blank?))))
+(define any-char/p    (label/p "any character" (satisfy/p (lambda (_) #t))))
 
 (define integer/p
   (label/p "integer"
