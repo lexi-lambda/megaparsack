@@ -11,11 +11,11 @@
 (provide (contract-out
           [parse-string (->* [parser? string?] [any/c] any/c)]
           [parse-syntax-string (-> parser? (syntax/c string?) any/c)]
-
           [char/p (char? . -> . (parser/c char? char?))]
           [char-ci/p (char? . -> . (parser/c char? char?))]
           [char-between/p (char? char? . -> . (parser/c char? char?))]
           [char-in/p (string? . -> . (parser/c char? char?))]
+          [any-char/p (parser/c char? char?)]
           [letter/p (parser/c char? char?)]
           [digit/p (parser/c char? char?)]
           [symbolic/p (parser/c char? char?)]
@@ -48,6 +48,7 @@
 (define digit/p       (label/p "number" (satisfy/p char-numeric?)))
 (define symbolic/p    (label/p "symbolic" (satisfy/p char-symbolic?)))
 (define space/p       (label/p "whitespace" (satisfy/p (disjoin char-whitespace? char-blank?))))
+(define any-char/p    (label/p "any character" (satisfy/p (lambda (_) #t))))
 
 (define integer/p
   (label/p "integer"

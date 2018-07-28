@@ -242,6 +242,15 @@ Returns a parser that parses a single character that is in @racket[alphabet].
 
 @history[#:added "1.2"]}
 
+@defthing[any-char/p (parser/c char? char?)]{
+Returns a parser that parses a single character.
+                                                            
+@(parser-examples
+  (eval:check (parse-result! (parse-string any-char/p "µ")) #\µ)
+  (eval:error (parse-result! (parse-string any-char/p ""))))
+
+@history[#:added "1.3"]}
+
 @defthing[letter/p (parser/c char? char?)]{
 Parses an alphabetic letter, as determined by @racket[char-alphabetic?].}
 
