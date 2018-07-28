@@ -11,7 +11,6 @@
 (provide (contract-out
           [parse-string (->* [parser? string?] [any/c] any/c)]
           [parse-syntax-string (-> parser? (syntax/c string?) any/c)]
-
           [char/p (char? . -> . (parser/c char? char?))]
           [char-ci/p (char? . -> . (parser/c char? char?))]
           [char-between/p (char? char? . -> . (parser/c char? char?))]
