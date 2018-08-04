@@ -89,3 +89,10 @@
 
 (define (char-ci=/? c k)
   (not (char-ci=? c k)))
+
+(define (string-member? str c)
+  (for/or ([k str])
+    (char=? k c)))
+
+(define (string-not-member? str c)
+  (not (string-member? str c)))
