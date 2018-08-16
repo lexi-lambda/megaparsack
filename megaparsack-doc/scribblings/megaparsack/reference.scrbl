@@ -219,6 +219,10 @@ place of the @racket[_src-name] argument.}
 @defproc[(char/p [c char?]) (parser/c char? char?)]{
 Parses a single datum that is equal to @racket[c].}
 
+@defproc[(char-not/p [c char?]) (parser/c char? char?)]{
+Parses a single datum that is different from @racket[c].
+@history[#:added "1.3"]}
+
 @defproc[(char-ci/p [c char?]) (parser/c char? char?)]{
 Parses a single datum that is case-insensitively equal to @racket[c], as determined by
 @racket[char-ci=?].}
@@ -242,6 +246,14 @@ Returns a parser that parses a single character that is in @racket[alphabet].
 
 @history[#:added "1.2"]}
 
+@defproc[(char-not-in/p [alphabet string?]) (parser/c char? char?)]{
+Returns a parser that parses a single character that is not in @racket[alphabet].
+@history[#:added "1.3"]}
+
+@defthing[any-char/p (parser/c char? char?)]{
+Returns a parser that parses a single character.
+@history[#:added "1.3"]}
+
 @defthing[letter/p (parser/c char? char?)]{
 Parses an alphabetic letter, as determined by @racket[char-alphabetic?].}
 
@@ -259,7 +271,12 @@ Parses a single whitespace character, as determined by @racket[char-whitespace?]
 Parses a sequence of digits as an integer. Does not handle negative numbers or numeric separators.}
 
 @defproc[(string/p [str string?]) (parser/c char? string?)]{
-Parses a sequence of characters equal to @racket[str] and returns @racket[str] as its result.}
+Parses a sequence of characters that is case-insensitively equal to @racket[str] and returns @racket[str] as its result.}
+
+@defproc[(string-ci/p [str string?]) (parser/c char? string?)]{
+Parses a sequence of characters equal to @racket[str] (as determined by
+@racket[char-ci=?]) and returns @racket[str] as its result.
+@history[#:added "1.3"]}
 
 @section[#:tag "parsing-with-parser-tools"]{Parsing with @racketmodname[parser-tools/lex]}
 
