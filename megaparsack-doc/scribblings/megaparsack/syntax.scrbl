@@ -42,6 +42,9 @@ special to use it with your custom parsers. For example, consider a relatively c
 parses a list of comma-delimited numbers surrounded by brackets:
 
 @(syntax-interaction
+  (require data/monad)
+  (require data/applicative)
+
   (define integer-list/p
     (do (char/p #\[)
         [ints <- (many/p (syntax/p integer/p) #:sep (char/p #\,))]
@@ -89,6 +92,9 @@ use the @racket[token/p] function to create parsers that handle particular token
 Here is a very simple lexer that produces lexemes for identifiers, numbers, parentheses, and commas:
 
 @(syntax-interaction
+  (require parser-tools/lex)
+  (require (prefix-in : parser-tools/lex-sre))
+
   (define-tokens simple [IDENTIFIER NUMBER])
   (define-empty-tokens simple* [OPEN-PAREN CLOSE-PAREN COMMA])
   (define simple-lexer
@@ -107,6 +113,8 @@ We can write a simple helper function to lex a string into a list of tokens, mak
 @racket[port-count-lines!] to enable source location tracking:
 
 @(syntax-interaction
+  (require parser-tools/lex)
+
   (define (lex-simple str)
     (define in (open-input-string str))
     (port-count-lines! in)
@@ -120,6 +128,10 @@ Next, we can write a trivial parser to actually parse these tokens. Since we’v
 of the heavy lifting is already done, and we can just focus on assigning semantics:
 
 @(syntax-interaction
+  (require megaparsack/parser-tools/lex)
+  (require data/monad)
+  (require data/applicative)
+
   (code:comment @#,elem{some wrappers around tokens that use @racket[syntax/p]})
   (define number/p (syntax/p (token/p 'NUMBER)))
   (define identifier/p (syntax/p (token/p 'IDENTIFIER)))
