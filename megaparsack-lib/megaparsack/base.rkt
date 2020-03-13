@@ -4,8 +4,8 @@
          (multi-in data [functor applicative monad either])
          (prefix-in d: data/applicative)
          match-plus
-         (multi-in racket [contract function generic list match port string])
-         (prefix-in r: racket/base)
+         (multi-in racket [contract function generic list match port stream string])
+         (prefix-in r: (multi-in racket [base stream]))
          (submod data/applicative coerce-delayed)
          (for-syntax racket/base
                      syntax/parse))
@@ -18,7 +18,7 @@
           [rename parser?* parser? (any/c . -> . boolean?)]
           [parser/c (contract? contract? . -> . contract?)]
 
-          [rename parse-datum parse (parser?* (listof syntax-box?) . -> . (either/c message? any/c))]
+          [rename parse-datum parse (parser?* (stream/c syntax-box?) . -> . (either/c message? any/c))]
           [parse-error->string (message? . -> . string?)]
           [parse-result! ((either/c message? any/c) . -> . any/c)]
           [struct (exn:fail:read:megaparsack exn:fail)
@@ -245,12 +245,26 @@
 ;; conditional (satisfy/p)
 ;; ---------------------------------------------------------------------------------------------------
 
+(define-match-expander empty-stream
+  (syntax-rules () [(_) (? stream? (? stream-empty?))])
+  (make-rename-transformer #'r:empty-stream))
+
+(define-match-expander stream-cons
+  (syntax-rules ()
+    [(_ a b)
+     (? stream?
+        (not (? stream-empty?))
+        (app (lambda (s)
+               (values (stream-first s) (stream-rest s)))
+             a b))])
+  (make-rename-transformer #'r:stream-cons))
+
 (define (satisfy/p proc)
   (parser
    (match-lambda
-     [(list (and stx (syntax-box (? proc) loc)) cs ...) (consumed (ok stx cs (message loc #f '())))]
-     [(list (syntax-box c loc) _ ...)                   (empty (error (message loc c '())))]
-     [_                                                 (empty (error (message empty-srcloc "end of input" '())))])))
+     [(stream-cons (and stx (syntax-box (? proc) loc)) cs) (consumed (ok stx cs (message loc #f '())))]
+     [(stream-cons (syntax-box c loc) _)                   (empty (error (message loc c '())))]
+     [_                                                    (empty (error (message empty-srcloc "end of input" '())))])))
 
 ;; termination (eof/p)
 ;; ---------------------------------------------------------------------------------------------------
@@ -258,8 +272,8 @@
 (define eof/p
   (parser
    (match-lambda
-     ['()                               (parse void/p '())]
-     [(list (syntax-box c loc) _ ...)   (empty (error (message loc c '("end of input"))))])))
+     [(empty-stream)                     (parse void/p '())]
+     [(stream-cons (syntax-box c loc) _) (empty (error (message loc c '("end of input"))))])))
 
 ;; source location reification (syntax-box/p & syntax/p)
 ;; ---------------------------------------------------------------------------------------------------
