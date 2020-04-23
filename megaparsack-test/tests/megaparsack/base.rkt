@@ -90,6 +90,13 @@
     (it "succeeds with only letters when parsing dotted letters"
       (check-equal? (parse-string many-dotted-letters/p "a.b.c")
                     (success (list #\a #\b #\c)))))
+  (context "when given a parser with trailing separator"
+    (define many-trailing-sep/p (do (many/p (char/p #\a)
+                                            #:sep (char/p #\.))
+                                    (char/p #\.)))
+    (it "succeeds with backtracking"
+      (check-equal? (parse-string many-trailing-sep/p "a.a.a.")
+                    (success #\.))))
   (context "when given a letter parser and a maximum count of three"
     (define at-most-three-letters/p (many/p letter/p #:max 3))
     (it "succeeds when parsing three letters"

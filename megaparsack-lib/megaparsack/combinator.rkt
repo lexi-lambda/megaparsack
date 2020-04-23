@@ -73,7 +73,7 @@
         (pure '())
         (or/p (lazy/p ((pure cons) p (loop-optional recur (sub1 max-count))))
               (pure '()))))
-  (loop-mandatory p #:recur-parser (do sep p)))
+  (loop-mandatory p #:recur-parser (try/p (do sep p))))
 
 (define (many+/p p #:sep [sep void/p] #:max [max-count +inf.0])
   (many/p p #:sep sep #:min 1 #:max max-count))
