@@ -63,7 +63,7 @@
   (if (zero? (string-length str))
       (pure "")
       (label/p str (do (char-parser (string-ref str 0))
-                       (string/p (substring str 1))
+                       (chars/p (substring str 1) char-parser)
                        (pure str)))))
 
 (define (string/p str)
