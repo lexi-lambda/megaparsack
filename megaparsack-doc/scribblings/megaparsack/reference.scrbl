@@ -201,6 +201,76 @@ applied to the result of @racket[parser] to produce the @racket[unexpected] fiel
    (define let-digit-let/p (list/p letter/p digit/p letter/p))
    (eval:check (parse-result! (parse-string let-digit-let/p "a1b")) (list #\a #\1 #\b)))}
 
+@subsection[#:tag "parser-parameters"]{Parser Parameters}
+
+@defproc[(make-parser-parameter [v any/c]) parser-parameter?]{
+Returns a new @deftech{parser parameter}. A parser parameter is like an ordinary @reftech{parameter},
+but instead of its state being scoped to a particular thread, a parser parameter’s state is scoped to
+a particular call to @racket[parse]. Furthermore, modifications to parser parameters are discarded if
+the parser backtracks past the point of modification, which ensures that only modifications from
+@emph{successful} parse branches are retained.
+
+Like ordinary parameters, parser parameters are procedures that accept zero or one argument. Unlike
+ordinary parameters, the result of applying a parser parameter procedure is a @tech{parser}, which
+must be monadically sequenced with other parsers to have any effect.
+
+@(parser-examples
+  (define param (make-parser-parameter #f))
+  (eval:check (parse-result! (parse-string (param) "")) #f)
+  (eval:check (parse-result! (parse-string (do (param #t) (param)) "")) #t))
+
+Each call to @racket[parse] is executed with a distinct @deftech{parser parameterization}, which means
+modifications to parser parameters are only visible during that particular parser execution. The
+@racket[v] argument passed to @racket[make-parser-parameter] is used as the created parser parameter’s
+initial value in each distinct parser parameterization.
+
+Parser parameters are useful for tracking state needed by context-sensitive parsers, but they can also
+be used to provide values with dynamic extent using @racket[parameterize/p], just as ordinary
+parameters can be locally modified via @racket[parameterize].
+
+@history[#:added "1.4"]}
+
+@defproc[(parser-parameter? [v any/c]) boolean?]{
+Returns @racket[#t] if @racket[v] is a @tech{parser parameter}, otherwise returns @racket[#f].
+
+@history[#:added "1.4"]}
+
+@defform[(parameterize/p ([param-expr val-expr] ...) parser-expr)
+         #:contracts ([param-expr parser-parameter?]
+                      [parser-expr parser?])]{
+Returns a new @tech{parser} that behaves just like @racket[parser-expr], except that the value of
+each @tech{parser parameter} @racket[param-expr] is given by the corresponding @racket[val-expr]
+during the dynamic extent of the parser’s execution.
+
+@(parser-examples
+  (define param (make-parser-parameter #f))
+  (eval:check (parse-result! (parse-string (do [a <- (param)]
+                                               [b <- (parameterize/p ([param #t])
+                                                       (param))]
+                                               [c <- (param)]
+                                               (pure (list a b c)))
+                                           ""))
+              (list #f #t #f)))
+
+If any of the @racket[param-expr]’s values are modified by @racket[parser-expr] via a direct call to
+the parser parameter procedure, the value remains modified until control leaves the enclosing
+@racket[parameterize/p] parser, after which the value is restored. (This behavior is precisely
+analogous to modifying an ordinary @reftech{parameter} within the body of a @racket[parameterize]
+expression.)
+
+@(parser-examples
+  (define param (make-parser-parameter #f))
+  (eval:check (parse-result! (parse-string (do (param 1)
+                                               [a <- (parameterize/p ([param 2])
+                                                       (do (param 3)
+                                                           (param)))]
+                                               [b <- (param)]
+                                               (pure (list a b)))
+                                           ""))
+              (list 3 1)))
+
+@history[#:added "1.4"]}
+
 @section[#:tag "parsing-text"]{Parsing Text}
 
 @defmodule[megaparsack/text]

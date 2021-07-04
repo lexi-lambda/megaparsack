@@ -42,7 +42,8 @@ Without getting into the nitty gritty details, here’s a quick overview of the 
  @item{Megaparsack’s naming conventions are somewhat closer to idiomatic Racket, whereas Parsack’s
        names are more directly ported from Haskell.}
 
- @item{Megaparsack does not allow the user to customize the parser state, whereas Parsack does.}
+ @item{Megaparsack provides @tech{parser parameters} for maintaining arbitrarily many distinct cells
+       of user-defined parser state, whereas Parsack only provides a single cell of state.}
 
  @item{Both Megaparsack and Parsack use the same general model for parsing, backtracking, and error
        reporting, which is adapted from the common parent, Parsec.}

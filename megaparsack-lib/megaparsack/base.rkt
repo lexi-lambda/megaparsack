@@ -7,10 +7,13 @@
          (multi-in racket [contract function generic list match port string])
          (prefix-in r: racket/base)
          (submod data/applicative coerce-delayed)
-         (for-syntax racket/base
-                     syntax/parse))
+         (for-syntax racket/base)
+         syntax/parse/define)
 
 (provide lazy/p
+         parser-parameter?
+         make-parser-parameter
+         parameterize/p
          (contract-out
           [struct syntax-box ([datum any/c] [srcloc srcloc?])]
           [struct message ([srcloc srcloc?] [unexpected any/c] [expected (listof string?)])]
@@ -58,14 +61,28 @@
 ;; core primitives
 ;; ---------------------------------------------------------------------------------------------------
 
+; A parser is a procedure that obeys the following contract:
+;
+;   (-> (listof syntax-box?)
+;       parser-parameterization?
+;       (values (or/c consumed? empty?)
+;               parser-parameterization?))
+;
+; The parser parameterization tracks user-defined parser state, and it is monadically threaded
+; through each parser.
+
 (struct parser (proc)
   #:methods gen:functor
   [(define/generic -map map)
    (define (map f p)
-     (parser (compose (match-lambda [(consumed (ok v rest message)) (consumed (ok (-map f v) rest message))]
-                                    [(empty (ok v rest message))    (empty (ok (-map f v) rest message))]
-                                    [error                          error])
-                      (parser-proc p))))]
+     (parser
+      (λ (input paramz)
+        (define-values [result paramz*] ((parser-proc p) input paramz))
+        (values (match result
+                  [(consumed (ok v rest message)) (consumed (ok (-map f v) rest message))]
+                  [(empty (ok v rest message))    (empty (ok (-map f v) rest message))]
+                  [error                          error])
+                paramz*))))]
 
   #:methods gen:applicative
   [(define (pure _ x)
@@ -79,33 +96,48 @@
   #:methods gen:monad
   [(define (chain f p)
      (parser
-      (λ (input)
-        (match (parse p input)
+      (λ (input paramz)
+        (define-values [result paramz*] ((parser-proc p) input paramz))
+        (match result
           [(empty (ok (and foo (syntax-box x _)) rest message))
-           (match (parse (f x) rest)
-             [(empty reply) (empty (merge-message/reply message reply))]
-             [consumed      consumed])]
+           (define-values [result* paramz**] (parse (f x) rest paramz*))
+           (values (match result*
+                     [(empty reply) (empty (merge-message/reply message reply))]
+                     [consumed      consumed])
+                   paramz**)]
           [(consumed (ok (and foo (syntax-box x srcloc)) rest message))
-           (consumed (match (parse (f x) rest)
-                       [(consumed (ok stx rest message))
-                        (ok (merge-syntax-box/srcloc stx srcloc) rest message)]
-                       [(empty (ok (syntax-box datum _) rest message))
-                        (merge-message/reply message (ok (syntax-box datum srcloc) rest message))]
-                       [(consumed error) error]
-                       [(empty error) (merge-message/reply message error)]))]
-          [error error]))))])
+           (define-values [result* paramz**] (parse (f x) rest paramz*))
+           (values (consumed (match result*
+                               [(consumed (ok stx rest message))
+                                (ok (merge-syntax-box/srcloc stx srcloc) rest message)]
+                               [(empty (ok (syntax-box datum _) rest message))
+                                (merge-message/reply message (ok (syntax-box datum srcloc) rest message))]
+                               [(consumed error) error]
+                               [(empty error) (merge-message/reply message error)]))
+                   paramz**)]
+          [error (values error paramz*)]))))])
 
 (define (parser?* v)
   (or (parser? v) (pure? v)))
 
+(define (make-pure-result x input)
+  (empty (ok (syntax-box x empty-srcloc) input empty-message)))
+(define (make-stateless-parser proc)
+  (parser (λ (input paramz) (values (proc input) paramz))))
+(define (map-parser-result p proc)
+  (parser
+   (λ (input paramz)
+     (define-values [result paramz*] (parse p input paramz))
+     (values (proc result) paramz*))))
+
 (define (pure/p x)
-  (parser (λ (input) (empty (ok (syntax-box x empty-srcloc) input empty-message)))))
+  (make-stateless-parser (λ (input) (values (make-pure-result x input)))))
 (define void/p (pure/p (void)))
 (define coerce-parser
   (coerce-pure void/p))
 
-(define (parse p input)
-  ((parser-proc (coerce-parser p)) input))
+(define (parse p input paramz)
+  ((parser-proc (coerce-parser p)) input paramz))
 
 (define (parser/c input/c output/c)
   (or/c (pure/c output/c)
@@ -117,11 +149,15 @@
                [seq/c any/c]
                [boxed-output/c (struct/c syntax-box output/c srcloc?)]
                [reply/c (or/c error? (struct/c ok boxed-output/c seq/c message?))])
-          (struct/c parser (-> any/c (or/c (struct/c consumed reply/c)
-                                           (struct/c empty reply/c)))))))
+          (struct/c parser (-> seq/c
+                               any/c
+                               (values (or/c (struct/c consumed reply/c)
+                                             (struct/c empty reply/c))
+                                       any/c))))))
 
 (define (parse-syntax-box p input)
-  (match (parse p input)
+  (match-define-values [result _] (parse p input (hasheq)))
+  (match result
     [(or (consumed (ok x _ _))
          (empty    (ok x _ _)))
      (success x)]
@@ -207,8 +243,8 @@
 ;; laziness (lazy/p)
 ;; ---------------------------------------------------------------------------------------------------
 
-(define-syntax-rule (lazy/p p)
-  (parser (λ (input) (parse p input))))
+(define-simple-macro (lazy/p p:expr)
+  (parser (λ (input paramz) (parse p input paramz))))
 
 ;; choice (or/p)
 ;; ---------------------------------------------------------------------------------------------------
@@ -216,17 +252,25 @@
 ; binary version of or/p
 (define (p . <or> . q)
   (parser
-   (λ (input)
-     (match (parse p input)
-       [(empty (error message-a))     (match (parse q input)
-                                        [(empty (error message-b))     (merge-error message-a message-b)]
-                                        [(empty (ok x rest message-b)) (merge-ok x rest message-a message-b)]
-                                        [consumed                      consumed])]
-       [(empty (ok x rest message-a)) (match (parse q input)
-                                        [(empty (error message-b))     (merge-ok x rest message-a message-b)]
-                                        [(empty (ok _ _ message-b))    (merge-ok x rest message-a message-b)]
-                                        [consumed                      consumed])]
-       [consumed                      consumed]))))
+   (λ (input paramz)
+     (define-values [result paramz*] (parse p input paramz))
+     (match result
+       [(empty (error message-a))
+        (define-values [result paramz*] (parse q input paramz))
+        (values (match result
+                  [(empty (error message-b))     (merge-error message-a message-b)]
+                  [(empty (ok x rest message-b)) (merge-ok x rest message-a message-b)]
+                  [consumed                      consumed])
+                paramz*)]
+       [(empty (ok x rest message-a))
+        (match-define-values [result _] (parse q input paramz))
+        (values (match result
+                  [(empty (error message-b))     (merge-ok x rest message-a message-b)]
+                  [(empty (ok _ _ message-b))    (merge-ok x rest message-a message-b)]
+                  [consumed                      consumed])
+                paramz*)]
+       [consumed
+        (values consumed paramz*)]))))
 
 (define (or/p . ps)
   (let-values ([(ps p) (split-at ps (sub1 (length ps)))])
@@ -236,17 +280,16 @@
 ;; ---------------------------------------------------------------------------------------------------
 
 (define (try/p p)
-  (parser
-   (λ (input)
-     (match (parse p input)
+  (map-parser-result
+   p (match-lambda
        [(consumed (error message)) (empty (error message))]
-       [other                      other]))))
+       [other                      other])))
 
 ;; conditional (satisfy/p)
 ;; ---------------------------------------------------------------------------------------------------
 
 (define (satisfy/p proc)
-  (parser
+  (make-stateless-parser
    (match-lambda
      [(list (and stx (syntax-box (? proc) loc)) cs ...) (consumed (ok stx cs (message loc #f '())))]
      [(list (syntax-box c loc) _ ...)                   (empty (error (message loc c '())))]
@@ -256,23 +299,22 @@
 ;; ---------------------------------------------------------------------------------------------------
 
 (define eof/p
-  (parser
+  (make-stateless-parser
    (match-lambda
-     ['()                               (parse void/p '())]
-     [(list (syntax-box c loc) _ ...)   (empty (error (message loc c '("end of input"))))])))
+     ['()                             (make-pure-result (void) '())]
+     [(list (syntax-box c loc) _ ...) (empty (error (message loc c '("end of input"))))])))
 
 ;; source location reification (syntax-box/p & syntax/p)
 ;; ---------------------------------------------------------------------------------------------------
 
 (define (syntax-box/p p)
-  (parser
-   (λ (input)
-     (match (parse p input)
+  (map-parser-result
+   p (match-lambda
        [(consumed (ok {and box (syntax-box _ srcloc)} rest message))
         (consumed (ok (syntax-box box srcloc) rest message))]
        [(empty (ok {and box (syntax-box _ srcloc)} rest message))
         (empty (ok (syntax-box box srcloc) rest message))]
-       [error error]))))
+       [error error])))
 
 (define (syntax/p p)
   (map syntax-box->syntax (syntax-box/p p)))
@@ -287,23 +329,57 @@
   (message srcloc unexpected '()))
 
 (define (label/p str p)
-  (parser
-   (λ (input)
-     (match (parse p input)
+  (map-parser-result
+   p (match-lambda
        [(empty (error message))     (empty (error (expect message str)))]
        [(empty (ok x rest message)) (empty (ok x rest (expect message str)))]
-       [other                       other]))))
+       [other                       other])))
 
 (define (hidden/p p)
-  (parser
-   (λ (input)
-     (match (parse p input)
+  (map-parser-result
+   p (match-lambda
        [(empty (error message))     (empty (error (hide message)))]
        [(empty (ok x rest message)) (empty (ok x rest (hide message)))]
-       [other                       other]))))
+       [other                       other])))
 
 ;; custom failure messages (fail/p)
 ;; ---------------------------------------------------------------------------------------------------
 
 (define (fail/p msg)
-  (parser (λ (input) (empty (error msg)))))
+  (make-stateless-parser (λ (input) (empty (error msg)))))
+
+;; state (make-parser-parameter, parameterize/p)
+;; ---------------------------------------------------------------------------------------------------
+
+(struct parser-parameter (initial-value)
+  #:constructor-name make-parser-parameter
+  #:authentic ; we look up parameters in the parameterization by `eq?`, so no contracts allowed
+  #:property prop:procedure
+  (case-lambda
+    [(self)
+     (parser
+      (λ (input paramz)
+        (define value (hash-ref paramz self (λ () (parser-parameter-initial-value self))))
+        (values (make-pure-result value input) paramz)))]
+    [(self value)
+     (parser
+      (λ (input paramz)
+        (values (make-pure-result (void) input)
+                (hash-set paramz self value))))]))
+
+(define-syntax-parser parameterize/p
+  [(_ ([param val:expr] ...) p)
+   #:declare param (expr/c #'parser-parameter? #:name "parameter")
+   #:declare p (expr/c #'parser? #:name "body parser")
+   (for/foldr ([body #'p.c])
+              ([param (in-list (attribute param.c))]
+               [val (in-list (attribute val))])
+     (quasisyntax/loc this-syntax
+       (parameterize-one/p #,body #,param #,val)))])
+
+(define (parameterize-one/p p param val)
+  (do [old-val <- (param)]
+      (param val)
+      [result <- p]
+      (param old-val)
+      (pure result)))

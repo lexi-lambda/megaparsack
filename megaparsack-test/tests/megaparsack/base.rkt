@@ -134,3 +134,32 @@
     (it "only consumes four letters when given five"
       (check-equal? (parse-string two-to-four-letters/p "abcde")
                     (success (list #\a #\b #\c #\d))))))
+
+(describe "parser parameters"
+  (define param (make-parser-parameter #f))
+
+  (it "returns the initial value before being set"
+    (check-equal? (parse-string (param) "")
+                  (success #f)))
+
+  (it "returns the set value after being set"
+    (check-equal? (parse-string (do (param #t) (param)) "")
+                  (success #t)))
+
+  (it "unsets the value when backtracking"
+    (check-equal? (parse-string (or/p (do (param #t) any-char/p)
+                                      (param))
+                                "")
+                  (success #f)))
+
+  (describe "parameterize/p"
+    (it "sets the value with a local extent"
+      (check-equal? (parse-string (do [(list a b) <- (parameterize/p ([param 1])
+                                                       (do [a <- (param)]
+                                                           (param 2)
+                                                           [b <- (param)]
+                                                           (pure (list a b))))]
+                                      [c <- (param)]
+                                      (pure (list a b c)))
+                                  "")
+                    (success (list 1 2 #f))))))
