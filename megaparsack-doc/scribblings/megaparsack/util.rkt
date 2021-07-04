@@ -12,8 +12,10 @@
                     (except-in racket/base do map)
                     racket/contract
                     racket/function)
+         (for-syntax racket/base)
          scribble/manual
-         scribble/example)
+         scribble/example
+         syntax/parse/define)
 
 (provide (for-label (all-from-out data/functor
                                   data/applicative
@@ -57,10 +59,11 @@
 (define-syntax-rule (parser-interaction body ...)
   (parser-examples #:label #f body ...))
 
-(define-syntax-rule (define-parser-interaction interaction close-interaction!)
+(define-simple-macro (define-parser-interaction interaction:id close-interaction!:id
+                       {~optional {~seq #:eval eval-id:id} #:defaults ([eval-id #'eval])})
   (begin
-    (define eval (make-parser-eval))
+    (define eval-id (make-parser-eval))
     (define-syntax-rule (interaction body (... ...))
-      (examples #:eval eval #:label #f body (... ...)))
+      (examples #:eval eval-id #:label #f body (... ...)))
     (define (close-interaction!)
-      (close-eval eval))))
+      (close-eval eval-id))))

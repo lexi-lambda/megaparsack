@@ -18,5 +18,6 @@ and compose different parsers using a base set of primitives.
 @include-section["megaparsack/basics.scrbl"]
 @include-section["megaparsack/choice.scrbl"]
 @include-section["megaparsack/syntax.scrbl"]
+@include-section["megaparsack/state.scrbl"]
 @include-section["megaparsack/reference.scrbl"]
 @include-section["megaparsack/differences-from-parsack.scrbl"]
