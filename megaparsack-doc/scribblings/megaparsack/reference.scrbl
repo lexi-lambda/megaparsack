@@ -61,18 +61,60 @@ this structure directly.}
 A parser that always succeeds and always returns @|void-const|.}
 
 @defproc[(or/p [parser parser?] ...+) parser?]{
-Tries each @racket[parser] in succession until one consumes input, at which point its result will be
-returned as the result of the overall parse. Parsers that are successful but do @emph{not} consume
-input will not prevent successive parsers from being tried, and parsers that consume input but fail
-will halt further parsers from being tried and will simply return an error.
+Tries each @racket[parser] in succession until one either succeeds or consumes input, at which point
+its result will be returned as the result of the overall parse. Parsers that consume input but fail
+will halt further parsers from being tried and will simply return an error; if backtracking is
+desired, the parser should be wrapped with @racket[try/p].
 
-If no parsers consume input, then the first successful empty parser is used instead. If all parsers
-fail, the result will be a failure that combines failure information from each parser attempted.}
+@history[#:changed "1.5" @elem{Changed to always return the first successful result, rather than
+           continuing to try parsers until one consumes input. The new behavior is more predictable
+           and more consistent with existing Parsec implementations, though the old behavior was
+           more consistent with the presentation in the original paper.}]}
 
 @defproc[(try/p [parser parser?]) parser?]{
 Creates a new parser like @racket[parser], except that it does not consume input if @racket[parser]
 fails. This allows the parser to backtrack and try other alternatives when used inside a
 @racket[or/p] combinator.}
+
+@(define-parser-interaction lookahead-interaction close-lookahead!)
+
+@defproc[(lookahead/p [parser parser?]) parser?]{
+Creates a new parser like @racket[parser], except that it does not consume input if @racket[parser]
+succeeds, so subsequent parsers will continue from the same location in the input stream. This
+allows a parser to ensure something will appear in future input without immediately consuming it.
+
+For example, @racket[lookahead/p] can be used to implement a parser that only succeeds at the end of a
+line, but does not consume the newline character itself:
+
+@(lookahead-interaction
+  (define end-of-line/p (lookahead/p (char/p #\newline))))
+
+This can be used to parse, for example, line comments that span to the end of the current line, while
+still allowing a later parser to consume the newline character:
+
+@(lookahead-interaction
+  (define rest-of-line/p
+    (or/p (do end-of-line/p (pure ""))
+          (do [c <- any-char/p]
+              [cs <- rest-of-line/p]
+              (pure (string-append (string c) cs)))))
+  (define line-comment/p
+    (do (try/p (string/p "# "))
+        rest-of-line/p))
+  (eval:check (parse-string (many/p (do [line <- line-comment/p]
+                                        (char/p #\newline)
+                                        (pure line)))
+                            (string-append "# hello\n"
+                                           "# world\n"))
+              (success (list "hello" "world"))))
+
+Note that if @racket[parser] @emph{fails}, @racket[lookahead/p] has no effect; if it consumed input
+before failing, it will not try other alternatives in an enclosing @racket[or/p]. Wrap @racket[parser]
+with @racket[try/p] if this behavior is undesirable.
+
+@history[#:added "1.5"]}
+
+@(close-lookahead!)
 
 @defproc[(satisfy/p [proc (any/c . -> . any/c)]) parser?]{
 Creates a parser that checks if @racket[proc] produces a non-@racket[#f] value when applied to a

@@ -15,10 +15,16 @@
                     (success 'eof))))
 
   (it "fails when a parser consumes input and fails"
-    (check-equal? (parse-string (or/p (pure 'eof)
-                                      (do letter/p letter/p))
+    (check-equal? (parse-string (or/p (do letter/p letter/p)
+                                      (pure 'eof))
                                 "a")
-                  (failure (message (srcloc 'string 1 0 1 1) "end of input" '("letter"))))))
+                  (failure (message (srcloc 'string 1 0 1 1) "end of input" '("letter")))))
+
+  (it "preserves errors from other branches on success"
+    (check-equal? (parse-string (do (or/p digit/p (pure #\0)) letter/p) "*")
+                  (failure (message (srcloc 'string 1 0 1 1) #\* '("number" "letter"))))
+    (check-equal? (parse-string (do (many/p (char/p #\r)) eof/p) "ra")
+                  (failure (message (srcloc 'string 1 1 2 1) #\a '("'r'" "end of input"))))))
 
 (describe "fail/p"
   (it "always fails"
@@ -29,6 +35,20 @@
            [p (fail/p msg)])
       (check-equal? (parse-string p "")
                     (failure msg)))))
+
+(describe "lookahead/p"
+  (it "succeeds without consuming input"
+    (check-equal? (parse-string (do (lookahead/p (char/p #\a))
+                                    (char/p #\a)
+                                    eof/p)
+                                "a")
+                  (success (void))))
+
+  (it "still consumes input on failure"
+    (check-equal? (parse-string (do (lookahead/p (string/p "ab"))
+                                    (char/p #\a))
+                                "a")
+                  (failure (message (srcloc 'string 1 0 1 1) "end of input" '("b"))))))
 
 (describe "one-of/p"
   (it "succeeds if any of the provided elements are equal"
@@ -59,7 +79,7 @@
                     (success (list #\a #\1 #\b))))
     (it "fails when given too few components"
       (check-equal? (parse-string letter-digit-letter/p "a1")
-                    (failure (message (srcloc #f #f #f #f #f)
+                    (failure (message (srcloc 'string 1 1 2 1)
                                       "end of input"
                                       '("letter"))))))
   (context "when given a separator"
@@ -70,7 +90,7 @@
                     (success (list #\a #\1 #\b))))
     (it "fails when given unseparated components"
       (check-equal? (parse-string dotted-letter-digit-letter/p "a1b")
-                    (failure (message (srcloc 'string 1 0 1 2)
+                    (failure (message (srcloc 'string 1 1 2 1)
                                       #\1 '("'.'")))))))
 
 (describe "many/p"

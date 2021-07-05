@@ -22,9 +22,6 @@
           [many/sep+/p (parser? parser? . -> . parser?)]
           [==/p (->* [any/c] [(any/c any/c . -> . any/c)] parser?)]
           [one-of/p (->* [list?] [(any/c any/c . -> . any/c)] parser?)]
-          [guard/p (->* [parser? (any/c . -> . any/c)]
-                        [(or/c string? #f) (any/c . -> . any/c)]
-                        parser?)]
           [list/p (->* []
                        [#:sep parser?]
                        #:rest (listof parser?)
@@ -36,15 +33,6 @@
 
 (define (one-of/p vs [=? equal?])
   (apply or/p (map #{==/p % =?} vs)))
-
-(define (guard/p p pred? [expected #f] [mk-unexpected values])
-  (do [s <- (syntax-box/p p)]
-      (define v (syntax-box-datum s))
-      (if (pred? v)
-          (pure v)
-          (fail/p (message (syntax-box-srcloc s)
-                           (mk-unexpected v)
-                           (if expected (list expected) '()))))))
 
 (define (list/p #:sep [sep void/p] . ps)
   (cond [(empty? ps) (pure '())]
