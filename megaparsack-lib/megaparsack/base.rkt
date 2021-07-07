@@ -11,15 +11,14 @@
          syntax/parse/define)
 
 (provide lazy/p
+         parser/c
          parser-parameter?
          make-parser-parameter
          parameterize/p
          (contract-out
           [struct syntax-box ([datum any/c] [srcloc srcloc?])]
           [struct message ([srcloc srcloc?] [unexpected any/c] [expected (listof string?)])]
-
           [rename parser?* parser? (any/c . -> . boolean?)]
-          [parser/c (contract? contract? . -> . contract?)]
 
           [rename parse-datum parse (parser?* (listof syntax-box?) . -> . (either/c message? any/c))]
           [parse-error->string (message? . -> . string?)]
@@ -171,24 +170,19 @@
 (define (parse p input paramz)
   ((parser-proc (coerce-parser p)) input paramz))
 
-(define (parser/c input/c output/c)
-  (or/c (pure/c output/c)
-        (let* (; Ideally, seq/c would be a more expressive contract, something like this:
-               ;   (listof (struct/c token input/c srcloc?))
-               ; but this turns out to be horribly slow in practice. Hopefully there is a better way
-               ; to protect the input/c invariant without killing performance (should try using a
-               ; custom contract).
-               [seq/c any/c]
-               [boxed-output/c (struct/c syntax-box output/c srcloc?)]
-               [reply/c (or/c error? (struct/c ok boxed-output/c seq/c any/c))])
-          (struct/c parser (-> seq/c
-                               any/c
-                               (values (or/c (struct/c consumed reply/c)
-                                             (struct/c empty reply/c))
-                                       any/c))))))
+; these are used by `parser/c` to implement lazy input token contracts
+(define parse-prompt-tag (make-continuation-prompt-tag 'parse))
+(define mark:parser-token-ctc-proj (make-continuation-mark-key 'parser-token-ctc-proj))
+(define (current-parser-token-ctc-proj)
+  (continuation-mark-set-first #f
+                               mark:parser-token-ctc-proj
+                               (λ (val) val)
+                               parse-prompt-tag))
 
 (define (parse-syntax-box p input)
-  (match-define-values [result _] (parse p input (hasheq)))
+  (match-define-values [result _] (call-with-continuation-prompt
+                                   (λ () (parse p input (hasheq)))
+                                   parse-prompt-tag))
   (match result
     [(or (consumed (ok x _ _))
          (empty    (ok x _ _)))
@@ -336,9 +330,12 @@
    (match-lambda
      [(parser-input pos last-loc tokens)
       (match tokens
-        [(cons (and stx (syntax-box (? proc) loc)) cs) (consumed (ok stx (parser-input (add1 pos) loc cs) #f))]
-        [(cons (syntax-box c loc) _)                   (empty (error (message* pos #f loc c '())))]
-        [_                                             (empty (error (message* pos #f last-loc "end of input" '())))])])))
+        [(cons (syntax-box (app (current-parser-token-ctc-proj) c) loc) cs)
+         (if (proc c)
+             (consumed (ok (syntax-box c loc) (parser-input (add1 pos) loc cs) #f))
+             (empty (error (message* pos #f loc c '()))))]
+        ['()
+         (empty (error (message* pos #f last-loc "end of input" '())))])])))
 
 ;; termination (eof/p)
 ;; ---------------------------------------------------------------------------------------------------
@@ -346,8 +343,12 @@
 (define eof/p
   (make-stateless-parser
    (match-lambda
-     [(parser-input pos _ '())                         (make-pure-result (void) '())]
-     [(parser-input pos _ (cons (syntax-box c loc) _)) (empty (error (message* pos #f loc c '("end of input"))))])))
+     [(parser-input pos _ tokens)
+      (match tokens
+        ['()
+         (make-pure-result (void) '())]
+        [(cons (syntax-box (app (current-parser-token-ctc-proj) c) loc) _)
+         (empty (error (message* pos #f loc c '("end of input"))))])])))
 
 ;; source location reification (syntax-box/p & syntax/p)
 ;; ---------------------------------------------------------------------------------------------------
@@ -447,6 +448,92 @@
                [(empty reply) (empty (guard-reply pos reply))]
                [(consumed reply) (consumed (guard-reply pos reply))])
              paramz*))))
+
+;; contracts (parser/c)
+;; ---------------------------------------------------------------------------------------------------
+
+(define-syntax-parser parser/c
+  [(head in-ctc out-ctc)
+   (define ctc-tag (gensym 'ctc))
+   (syntax-property
+    (quasisyntax/loc this-syntax
+      (parser/c-proc
+       #,(syntax-property #'in-ctc 'racket/contract:negative-position ctc-tag)
+       #,(syntax-property #'out-ctc 'racket/contract:positive-position ctc-tag)))
+    'racket/contract:contract
+    (vector ctc-tag (list #'head) '()))]
+  [(head form ...)
+   (syntax-property (quasisyntax/loc this-syntax
+                      (parser/c-proc form ...))
+                    'racket/contract:contract
+                    (vector (gensym 'ctc) (list #'head) '()))]
+  [head:id
+   (syntax-property (quasisyntax/loc this-syntax
+                      parser/c-proc)
+                    'racket/contract:contract
+                    (vector (gensym 'ctc) (list #'head) '()))])
+
+; We define `parser/c` as a custom contract, which allows us to ensure that contracts on input tokens
+; are applied /lazily/, when the tokens are actually consumed. If we didn’t do this, each individual
+; parser would apply its input contract to every remaining token in the input stream, which is both
+; unhelpful and extraordinarily slow.
+;
+; To keep contract checking minimal, `parser/c` does not directly enforce input contracts. Instead, it
+; stores a contract projection in the `mark:parser-token-ctc-proj` continuation mark. The contract
+; projection is only actually applied to input tokens as needed by primitive parser constructors like
+; `satisfy/p`.
+;
+; This is all rather subtle, since it means all primitive parsers must individually take care to apply
+; the contract projection before inspecting the token stream. Fortunately, the only parsers that
+; actually inspect tokens directly are `satisfy/p` and `eof/p`, so the contract checking machinery
+; can be localized there.
+
+(define (parser/c-proc in-ctc out-ctc)
+  (let ([in-ctc (coerce-contract 'parser/c in-ctc)]
+        [out-ctc (coerce-contract 'parser/c out-ctc)])
+    (define in-proj (contract-late-neg-projection in-ctc))
+    (define out-proj (contract-late-neg-projection out-ctc))
+    (define pure-out-proj (contract-late-neg-projection (pure/c out-ctc)))
+
+    (define chaperone? (and (chaperone-contract? in-ctc)
+                            (chaperone-contract? out-ctc)))
+    ((if chaperone? make-chaperone-contract make-contract)
+     #:name (build-compound-type-name 'parser/c in-ctc out-ctc)
+     #:first-order parser?*
+     #:late-neg-projection
+     (λ (blame)
+       (define in-elem-proj (in-proj (blame-add-context blame "the input to" #:swap? #t)))
+       (define out-blame (blame-add-context blame "the result of"))
+       (define out-elem-proj (out-proj out-blame))
+       (define pure-out-elem-proj (pure-out-proj out-blame))
+       (λ (val missing-party)
+         (cond
+           [(pure? val)
+            (pure-out-elem-proj val missing-party)]
+           [(parser? val)
+            ((if chaperone? chaperone-struct impersonate-struct)
+             val parser-proc
+             (λ (self parse-proc)
+               (define (wrap-ok x loc rest message)
+                 (ok (syntax-box (out-elem-proj x missing-party) loc) rest message))
+               ((if chaperone? chaperone-procedure impersonate-procedure)
+                parse-proc
+                (λ (input paramz)
+                  (define old-ctc-proj (current-parser-token-ctc-proj))
+                  (values (λ (result paramz)
+                            (values (match result
+                                      [(consumed (ok (syntax-box x loc) rest message))
+                                       (consumed (wrap-ok x loc rest message))]
+                                      [(empty (ok (syntax-box x loc) rest message))
+                                       (empty (wrap-ok x loc rest message))]
+                                      [error error])
+                                    paramz))
+                          'mark mark:parser-token-ctc-proj
+                          (λ (val) (in-elem-proj (old-ctc-proj val) missing-party))
+                          input paramz)))))]
+           [else
+            (raise-blame-error blame val #:missing-party missing-party
+                               '(expected: "parser?" given: "~e") val)]))))))
 
 ;; state (make-parser-parameter, parameterize/p)
 ;; ---------------------------------------------------------------------------------------------------
