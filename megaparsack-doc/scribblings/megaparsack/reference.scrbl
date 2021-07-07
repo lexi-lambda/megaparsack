@@ -17,8 +17,11 @@ them to be mapped over and sequenced together using the corresponding generic in
 Returns @racket[#t] if @racket[v] is a @tech{parser}, otherwise returns @racket[#f].}
 
 @defproc[(parser/c [in-ctc contract?] [out-ctc contract?]) contract?]{
-Produces a @reftech{contract} that describes a @tech{parser} that consumes values described by
-@racket[in-ctc] and produces values described by @racket[out-ctc].}
+Produces a @reftech{contract} that recognizes @tech{parsers}. Tokens consumed by the parser must match
+@racket[in-ctc], and values returned by the parser must match @racket[out-ctc].
+
+If both @racket[in-ctc] and @racket[out-ctc] are @reftech{chaperone contracts}, then the result will
+also be a @reftech{chaperone contract}.}
 
 @defproc[(parse [parser parser?] [boxes (listof syntax-box?)]) (either/c message? any/c)]{
 Runs @racket[parser] on @racket[boxes] and returns either the result of a successful parse or a value
