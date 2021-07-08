@@ -1,4 +1,4 @@
-# megaparsack [![Build Status](https://travis-ci.org/lexi-lambda/megaparsack.svg?branch=master)](https://travis-ci.org/lexi-lambda/megaparsack) [![Coverage Status](https://coveralls.io/repos/github/lexi-lambda/megaparsack/badge.svg?branch=master)](https://coveralls.io/github/lexi-lambda/megaparsack?branch=master)
+# megaparsack [![Build Status](https://github.com/lexi-lambda/megaparsack/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/lexi-lambda/megaparsack/actions/workflows/build.yml)
 
 This library implements a set of **practical parser combinators** inspired by libraries like [parsec][parsec], [megaparsec][megaparsec], and [parsack][parsack]. It can be used to build parsers for arbitrary input data, and it includes built-in facilities for parsing textual data and tokens produced by [`parser-tools/lex`][parser-tools/lex].
 
