@@ -558,9 +558,9 @@
   [(_ ([param val:expr] ...) p)
    #:declare param (expr/c #'parser-parameter? #:name "parameter")
    #:declare p (expr/c #'parser? #:name "body parser")
-   (for/foldr ([body #'p.c])
-              ([param (in-list (attribute param.c))]
-               [val (in-list (attribute val))])
+   (for/fold ([body #'p.c])
+             ([param (in-list (reverse (attribute param.c)))]
+              [val (in-list (reverse (attribute val)))])
      (quasisyntax/loc this-syntax
        (parameterize-one/p #,body #,param #,val)))])
 
