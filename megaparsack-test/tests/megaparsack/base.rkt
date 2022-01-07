@@ -93,6 +93,25 @@
                     (failure (message (srcloc 'string 1 1 2 1)
                                       #\1 '("'.'")))))))
 
+(describe "delay/p"
+  (define eval-count 0)
+  (define rec/p (or/p (char/p #\.)
+                      (list/p (char/p #\a)
+                              (delay/p (begin (set! eval-count (add1 eval-count))
+                                              rec/p)))))
+
+  (it "delays evaluation of its argument"
+    (check-equal? eval-count 0))
+
+  (it "allows a parser to be self-recursive"
+    (check-equal? (parse-string rec/p "aaa.")
+                  (success '(#\a (#\a (#\a #\.))))))
+
+  (it "only evaluates its argument once"
+    (check-equal? (parse-string rec/p "aaa.")
+                  (success '(#\a (#\a (#\a #\.)))))
+    (check-equal? eval-count 1)))
+
 (describe "many/p"
   (context "when given a letter parser"
     (define many-letters/p (many/p letter/p))

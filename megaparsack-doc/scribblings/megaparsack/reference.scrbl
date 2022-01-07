@@ -157,6 +157,51 @@ Produces a parser that always fails and produces @racket[msg] as the error messa
 lowest-level way to report errors, but many cases in which you would want to raise a custom failure
 message can be replaced with @racket[guard/p] instead, which is slightly higher level.}
 
+@defform[(delay/p parser-expr)
+         #:contracts ([parser-expr parser?])]{
+Creates a parser that delays evaluation of @racket[parser-expr] until the first time it is applied to
+input. Otherwise, the parser’s behavior is identical to that of @racket[parser-expr]. The parser
+returned by @racket[delay/p] never evaluates @racket[parser-expr] more than once, even if it’s applied
+to input multiple times.
+
+@(parser-examples
+  (define delayed/p (delay/p (begin (println 'evaluated)
+                                    (char/p #\a))))
+  (eval:check (parse-result! (parse-string delayed/p "a")) #\a)
+  (eval:check (parse-result! (parse-string delayed/p "a")) #\a))
+
+@racket[delay/p] can be used to delay evaluation in situations where a (possibly mutually) recursive
+parser would otherwise require evaluating a parser before its definition. For example:
+
+@(parser-interaction
+  (define one/p (or/p (char/p #\.)
+                      (delay/p two/p)))
+  (define two/p (list/p (char/p #\a) one/p))
+  (eval:check (parse-result! (parse-string one/p "aa.")) '(#\a (#\a #\.))))
+
+Without the use of @racket[delay/p], the reference to @racket[two/p] would be evaluated too soon
+(since @racket[or/p] is an ordinary function, unlike @racket[or]).
+
+Note that the @racket[delay/p] expression itself may be evaluated multiple times, in which case the
+@racket[parser-expr] may be as well (since each evaluation of @racket[delay/p] creates a separate
+parser). This can easily arise from uses of @racket[do], since @racket[do] is syntactic sugar for
+nested uses of @racket[lambda], though it might not be syntactically obvious that the @racket[delay/p]
+expression appears under one such @racket[lambda]. For example:
+
+@(parser-interaction
+  (define sneaky-evaluation/p
+    (do (char/p #\a)
+        (delay/p (begin (println 'evaluated)
+                        (char/p #\b)))))
+  (eval:check (parse-result! (parse-string sneaky-evaluation/p "ab")) #\b)
+  (eval:check (parse-result! (parse-string sneaky-evaluation/p "ab")) #\b))
+
+In other words, @racket[delay/p] doesn’t perform any magical memoization or caching, so it can’t be
+used to prevent a parser from being evaluated multiple times, only to delay its evaluation to a later
+point in time.
+
+@history[#:added "1.6"]}
+
 @defproc[(many/p [parser parser?]
                  [#:sep sep parser? void/p]
                  [#:min min-count exact-nonnegative-integer? 0]

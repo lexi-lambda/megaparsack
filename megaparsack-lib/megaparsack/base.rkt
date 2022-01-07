@@ -4,13 +4,13 @@
          (multi-in data [functor applicative monad either])
          (prefix-in d: data/applicative)
          match-plus
-         (multi-in racket [contract function generic list match port string])
+         (multi-in racket [contract function generic list match port promise string])
          (prefix-in r: racket/base)
          (submod data/applicative coerce-delayed)
          (for-syntax racket/base)
          syntax/parse/define)
 
-(provide lazy/p
+(provide lazy/p delay/p
          parser/c
          parser-parameter?
          make-parser-parameter
@@ -279,11 +279,18 @@
     [(empty reply) (empty (merge-message/reply message reply))]
     [(consumed reply) (consumed (merge-message/reply message reply))]))
 
-;; laziness (lazy/p)
+;; laziness (lazy/p, delay/p)
 ;; ---------------------------------------------------------------------------------------------------
 
+;; Not publicly documented, but provided for backwards compatibility.
+;; Will likely be removed eventually in favor of `delay/p`.
 (define-simple-macro (lazy/p p:expr)
   (parser (λ (input paramz) (parse p input paramz))))
+
+(define-simple-macro (delay/p p)
+  #:declare p (expr/c #'parser?*)
+  (let ([pp (delay p.c)])
+    (parser (λ (input paramz) (parse (force pp) input paramz)))))
 
 ;; choice (or/p)
 ;; ---------------------------------------------------------------------------------------------------
