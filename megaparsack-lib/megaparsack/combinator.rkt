@@ -59,7 +59,7 @@
   (define (loop-optional p max-count #:recur-parser [recur p])
     (if (zero? max-count)
         (pure '())
-        (or/p (lazy/p ((pure cons) p (loop-optional recur (sub1 max-count))))
+        (or/p ((pure cons) p (lazy/p (loop-optional recur (sub1 max-count))))
               (pure '()))))
   (loop-mandatory p #:recur-parser (do sep p)))
 
