@@ -202,41 +202,6 @@ point in time.
 
 @history[#:added "1.6"]}
 
-@defproc[(many/p [parser parser?]
-                 [#:sep sep parser? void/p]
-                 [#:min min-count exact-nonnegative-integer? 0]
-                 [#:max max-count (or/c exact-nonnegative-integer? +inf.0) +inf.0])
-         (parser/c any/c list?)]{
-Produces a parser that attempts @racket[parser] at least @racket[min-count] times and at most
-@racket[max-count] times, with attempts separated by @racket[sep]. The returned parser produces a
-list of results of successful attempts of @racket[parser]. Results of @racket[sep] are ignored.
-
-@(parser-examples
-  (define letters/p (many/p letter/p))
-  (eval:check (parse-result! (parse-string letters/p "abc")) (list #\a #\b #\c))
-  (define dotted-letters/p
-    (many/p letter/p #:sep (char/p #\.) #:min 2 #:max 4))
-  (eval:check (parse-result! (parse-string dotted-letters/p "a.b.c")) (list #\a #\b #\c))
-  (eval:error (parse-result! (parse-string dotted-letters/p "abc")))
-  (eval:error (parse-result! (parse-string dotted-letters/p "a")))
-  (eval:check (parse-result! (parse-string dotted-letters/p "a.b.c.d.e")) (list #\a #\b #\c #\d)))
-
-@history[#:added "1.1"]}
-
-@defproc[(many+/p [parser parser?]
-                  [#:sep sep parser? void/p]
-                  [#:max max-count (or/c exact-nonnegative-integer? +inf.0) +inf.0])
-         (parser/c any/c list?)]{
-Like @racket[many/p], but attempts @racket[parser] at least once. Equivalent to
-@racket[(many/p parser #:sep sep #:min 1 #:max max-count)].
-
-@history[#:changed "1.1" @elem{Added support for @racket[#:sep] and @racket[#:max] keyword arguments
-                               for consistency with @racket[many/p].}]}
-
-@defproc[(repeat/p [n exact-nonnegative-integer?] [parser parser?]) (parser/c any/c list?)]{
-Produces a parser that attempts @racket[parser] @emph{exactly} @racket[n] times and returns a list
-of the results. Equivalent to @racket[(many/p parser #:min n #:max n)].}
-
 @defproc[(==/p [v any/c] [=? (any/c any/c . -> . any/c) equal?]) parser?]{
 Produces a parser that succeeds when a single datum is equal to @racket[v], as determined by
 @racket[=?]. Like @racket[satisfy/p], it consumes a single datum upon success but does not consume
@@ -290,6 +255,110 @@ applied to the result of @racket[parser] to produce the @racket[unexpected] fiel
  @(parser-examples
    (define let-digit-let/p (list/p letter/p digit/p letter/p))
    (eval:check (parse-result! (parse-string let-digit-let/p "a1b")) (list #\a #\1 #\b)))}
+
+@subsection[#:tag "repetition"]{Repetition}
+
+@defproc[(many/p [parser parser?]
+                 [#:sep sep parser? void/p]
+                 [#:min min-count exact-nonnegative-integer? 0]
+                 [#:max max-count (or/c exact-nonnegative-integer? +inf.0) +inf.0])
+         (parser/c any/c list?)]{
+Produces a parser that attempts @racket[parser] at least @racket[min-count] times and at most
+@racket[max-count] times, with attempts separated by @racket[sep]. The returned parser produces a
+list of results of successful attempts of @racket[parser]. Results of @racket[sep] are ignored.
+
+@(parser-examples
+  (define letters/p (many/p letter/p))
+  (eval:check (parse-result! (parse-string letters/p "abc")) (list #\a #\b #\c))
+  (define dotted-letters/p
+    (many/p letter/p #:sep (char/p #\.) #:min 2 #:max 4))
+  (eval:check (parse-result! (parse-string dotted-letters/p "a.b.c")) (list #\a #\b #\c))
+  (eval:error (parse-result! (parse-string dotted-letters/p "abc")))
+  (eval:error (parse-result! (parse-string dotted-letters/p "a")))
+  (eval:check (parse-result! (parse-string dotted-letters/p "a.b.c.d.e")) (list #\a #\b #\c #\d)))
+
+@history[#:added "1.1"]}
+
+@defproc[(many+/p [parser parser?]
+                  [#:sep sep parser? void/p]
+                  [#:max max-count (or/c exact-nonnegative-integer? +inf.0) +inf.0])
+         (parser/c any/c list?)]{
+Like @racket[many/p], but @racket[parser] must succeed at least once. Equivalent to
+@racket[(many/p parser #:sep sep #:min 1 #:max max-count)].
+
+@history[#:changed "1.1" @elem{Added support for @racket[#:sep] and @racket[#:max] keyword arguments
+                               for consistency with @racket[many/p].}]}
+
+@defproc[(repeat/p [n exact-nonnegative-integer?] [parser parser?]) (parser/c any/c list?)]{
+Produces a parser that attempts @racket[parser] @emph{exactly} @racket[n] times and returns a list
+of the results. Equivalent to @racket[(many/p parser #:min n #:max n)].}
+
+@defproc[(many-until/p [parser parser?]
+                       [#:end end parser?]
+                       [#:sep sep parser? void/p]
+                       [#:min min-count exact-nonnegative-integer? 0])
+         (parser/c (list/c list? any/c))]{
+Like @racket[many/p], but repeats until @racket[end] succeeds. The result is a list of two values:
+a list of results produced by @racket[parser] and the result produced by @racket[end].
+
+@(parser-examples
+  (define letters-then-punctuation
+    (many-until/p letter/p #:end (char-in/p ".!?,;")))
+  (eval:check (parse-result! (parse-string letters-then-punctuation "abc!"))
+              (list '(#\a #\b #\c) #\!))
+  (eval:check (parse-result! (parse-string letters-then-punctuation "abc,efg"))
+              (list '(#\a #\b #\c) #\,))
+  (eval:error (parse-result! (parse-string letters-then-punctuation "a1c;")))
+  (eval:check (parse-result! (parse-string letters-then-punctuation "?"))
+              (list '() #\?)))
+
+To determine if the repetition should stop, @racket[end] is attempted before each optional attempt of
+@racket[parser], i.e. each attempt after the ones required by @racket[min-count] (if any). If
+@racket[end] succeeds, the repetition is terminated immediately, regardless of whether or not
+further attempts of @racket[parser] might succeed:
+
+@(parser-examples
+  #:label #f
+  (define digits-then-zero (many-until/p digit/p #:end (char/p #\0)))
+  (eval:check (parse-result! (parse-string digits-then-zero "1230"))
+              (list '(#\1 #\2 #\3) #\0))
+  (eval:check (parse-result! (parse-string digits-then-zero "12305670"))
+              (list '(#\1 #\2 #\3) #\0)))
+
+If @racket[end] fails without consuming input, the repetition continues. However, note that if an
+attempt of @racket[end] fails @emph{after} consuming input, the failure is propagated to the
+entire repetition, as with @racket[or/p]. This allows a partial success of @racket[end] to “commit”
+to ending the repetition, even if further attempts @racket[parser] would succeed:
+
+@(parser-examples
+  #:label #f
+  (define telegram/p (many-until/p any-char/p #:end (string/p "STOP")))
+  (eval:check (parse-result! (parse-string telegram/p "HELLO STOP"))
+              (list '(#\H #\E #\L #\L #\O #\space) "STOP"))
+  (eval:error (parse-result! (parse-string telegram/p "MESSAGE STOP"))))
+
+This behavior can be useful in situations where @racket[end] is complex (so it’s helpful to report
+a parse error that occurs after some prefix of it has succeeded), but in cases like the above, it is
+usually not desired. As with @racket[or/p], this committing behavior can be suppressed by wrapping
+@racket[end] with @racket[try/p]:
+
+@(parser-examples
+  #:label #f
+  (define fixed-telegram/p
+    (many-until/p any-char/p #:end (try/p (string/p "STOP"))))
+  (eval:check (parse-result! (parse-string fixed-telegram/p "MESSAGE STOP"))
+              (list '(#\M #\E #\S #\S #\A #\G #\E #\space) "STOP")))
+
+@history[#:added "1.7"]}
+
+@defproc[(many+-until/p [parser parser?]
+                        [#:end end parser?]
+                        [#:sep sep parser? void/p])
+         (parser/c (list/c list? any/c))]{
+Like @racket[many-until/p], but @racket[parser] must succeed at least once. Equivalent to
+@racket[(many-until/p parser #:end end #:sep sep #:min 1)].
+
+@history[#:added "1.7"]}
 
 @subsection[#:tag "parser-parameters"]{Parser Parameters}
 
