@@ -36,6 +36,18 @@
       (check-equal? (parse-string p "")
                     (failure msg)))))
 
+(describe "noncommittal/p"
+  (it "allows backtracking as if input was not consumed upon success"
+    (check-equal? (parse-string (many/p letter/p #:sep (noncommittal/p space/p))
+                                "a b c d .")
+                  (success '(#\a #\b #\c #\d))))
+
+  (it "still consumes input on failure"
+    (check-equal? (parse-string (or/p (noncommittal/p (string/p "ab"))
+                                      (char/p #\a))
+                                "a")
+                  (failure (message (srcloc 'string 1 0 1 1) "end of input" '("b"))))))
+
 (describe "lookahead/p"
   (it "succeeds without consuming input"
     (check-equal? (parse-string (do (lookahead/p (char/p #\a))

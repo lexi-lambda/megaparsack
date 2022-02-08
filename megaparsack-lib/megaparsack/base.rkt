@@ -30,6 +30,7 @@
           [void/p (parser/c any/c void?)]
           [or/p (parser?* parser?* ... . -> . parser?*)]
           [try/p (parser?* . -> . parser?*)]
+          [noncommittal/p (parser?* . -> . parser?*)]
           [lookahead/p (parser?* . -> . parser?*)]
           [satisfy/p ((any/c . -> . any/c) . -> . parser?*)]
           [eof/p (parser/c any/c void?)]
@@ -310,7 +311,7 @@
   (let-values ([(ps p) (split-at ps (sub1 (length ps)))])
     (foldr <or> (first p) ps)))
 
-;; lookahead (try/p, lookahead/p)
+;; lookahead (try/p, noncommittal/p, lookahead/p)
 ;; ---------------------------------------------------------------------------------------------------
 
 (define (try/p p)
@@ -318,6 +319,12 @@
    p (match-lambda
        [(consumed (error message)) (empty (error message))]
        [other                      other])))
+
+(define (noncommittal/p p)
+  (map-parser-result
+   p (match-lambda
+       [(consumed (? ok? reply)) (empty reply)]
+       [other                    other])))
 
 (define (lookahead/p p)
   (parser

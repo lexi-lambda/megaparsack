@@ -79,6 +79,44 @@ Creates a new parser like @racket[parser], except that it does not consume input
 fails. This allows the parser to backtrack and try other alternatives when used inside a
 @racket[or/p] combinator.}
 
+@defproc[(noncommittal/p [parser parser?]) parser?]{
+@margin-note{
+  Note that unlike @racket[lookahead/p], @racket[noncommittal/p] @emph{only} affects backtracking;
+  the consumed input is still removed from the input stream. If true lookahead is desired, use
+  @racket[lookahead/p], instead.}
+
+Creates a new parser like @racket[parser], except that it is not considered to have consumed
+input for the purposes of backtracking if @racket[parser] succeeds. This allows a future failure to
+backtrack to an earlier choice point (assuming the failure does not itself consume input).
+
+@(parser-examples
+  (eval:error (parse-result!
+               (parse-string (or/p (do (char/p #\a) (char/p #\b))
+                                   (do (char/p #\a) (char/p #\c)))
+                             "ac")))
+  (eval:check (parse-result!
+               (parse-string (or/p (do (noncommittal/p (char/p #\a)) (char/p #\b))
+                                   (do (char/p #\a) (char/p #\c)))
+                             "ac"))
+              #\c))
+
+This can be useful to allow backtracking within a parse sequence in a more limited fashion than
+@racket[try/p] would allow. In particular, contrast the meaning of
+@nested[#:style 'inset]{@racket[(try/p (do _parser-a _parser-b))]}
+with that of
+@nested[#:style 'inset]{@racket[(do (noncommittal/p _parser-a) _parser-b)].}
+The version using @racket[try/p] will always backtrack if either @racket[_parser-a] or
+@racket[_parser-b] fails in any way. However, the version using @racket[noncommittal/p] will not
+backtrack if either parser fails in a way that would not ordinarily backtrack; it just allows a
+recoverable failure in @racket[_parser-b] to backtrack to a choice point that occurred prior to
+@racket[_parser-a].
+
+Note that @racket[noncommittal/p] does @emph{not} affect whether @racket[parser] is considered to have
+consumed input if it fails, which is to say that @racket[try/p] and @racket[noncommittal/p] are
+orthogonal and should be combined if both behaviors are desired.
+
+@history[#:added "1.7"]}
+
 @(define-parser-interaction lookahead-interaction close-lookahead!)
 
 @defproc[(lookahead/p [parser parser?]) parser?]{
