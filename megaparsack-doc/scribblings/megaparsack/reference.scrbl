@@ -246,7 +246,7 @@ Produces a parser that succeeds when a single datum is equal to @racket[v], as d
 anything upon failure.}
 
 @defproc[(one-of/p [vs list?] [=? (any/c any/c . -> . any/c) equal?]) parser?]{
-Like @racket[(or/p (one-of/p _v =?) ...)]. Produces a parser that succeeds when a single datum is
+Like @racket[(or/p (==/p _v =?) ...)]. Produces a parser that succeeds when a single datum is
 equal to any of the elements of @racket[vs], as determined by @racket[=?]. Like @racket[satisfy/p],
 it consumes a single datum upon success but does not consume anything upon failure.
 
