@@ -59,18 +59,27 @@
            (do [digits <- (many+/p digit/p)]
                (pure (string->number (apply string digits))))))
 
-(define (chars/p str char-parser)
-  (if (zero? (string-length str))
-      (pure "")
-      (label/p str (do (char-parser (string-ref str 0))
-                       (string/p (substring str 1))
-                       (pure str)))))
-
 (define (string/p str)
-  (chars/p str char/p))
+  (define len (string-length str))
+  (if (zero? len)
+      (pure "")
+      (label/p str
+        (let loop ([i 0])
+          (if (< i len)
+              (do (char/p (string-ref str i))
+                  (loop (add1 i)))
+              (pure str))))))
 
 (define (string-ci/p str)
-  (chars/p str char-ci/p))
+  (define len (string-length str))
+  (if (zero? len)
+      (pure "")
+      (label/p str
+        (let loop ([i 0] [cs '()])
+          (if (< i len)
+              (do [c <- (char-ci/p (string-ref str i))]
+                  (loop (add1 i) (cons c cs)))
+              (pure (list->string (reverse cs))))))))
 
 (define (char-between/p low high)
   (label/p (format "a character between '~a' and '~a'" low high)

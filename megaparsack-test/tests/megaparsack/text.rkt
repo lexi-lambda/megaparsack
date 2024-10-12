@@ -34,3 +34,10 @@
     (check-equal? (parse-string (char-in/p "aeiou") "b")
                   (failure (message (srcloc 'string 1 0 1 1) #\b
                                     '("'a'" "'e'" "'i'" "'o'" "'u'"))))))
+
+(describe "string-ci/p"
+  (it "parses a string, ignoring case, and returns the input string"
+    (check-equal? (parse-string (string-ci/p "LDA") "lda") (success "lda"))
+    (check-equal? (parse-string (string-ci/p "lda") "LDA") (success "LDA"))
+    (check-equal? (parse-string (string-ci/p "LDA") "lDa") (success "lDa"))
+    (check-equal? (parse-string (string-ci/p "LDA") "LdA") (success "LdA"))))

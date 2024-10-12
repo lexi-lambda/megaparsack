@@ -1,6 +1,6 @@
 #lang info
 
-(define version "1.7")
+(define version "1.8")
 
 (define collection 'multi)
 
@@ -10,7 +10,7 @@
   '("base"
     "functional-doc"
     "functional-lib"
-    ["megaparsack-lib" #:version "1.7"]
+    ["megaparsack-lib" #:version "1.8"]
     "megaparsack-parser-tools"
     "parser-tools-doc"
     "parser-tools-lib"

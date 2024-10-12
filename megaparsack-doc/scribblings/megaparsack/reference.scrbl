@@ -542,8 +542,14 @@ Parses a sequence of characters that is case-insensitively equal to @racket[str]
 
 @defproc[(string-ci/p [str string?]) (parser/c char? string?)]{
 Parses a sequence of characters equal to @racket[str] (as determined by
-@racket[char-ci=?]) and returns @racket[str] as its result.
-@history[#:added "1.3"]}
+@racket[char-ci=?]) and returns the matched input string as its result.
+
+@(parser-examples
+  (eval:check (parse-result! (parse-string (string-ci/p "hello") "HeLlO")) "HeLlO"))
+
+@history[#:added "1.3"
+         #:changed "1.8" @elem{Changed to return the parsed input string rather
+           than always returning @racket[str].}]}
 
 @section[#:tag "parsing-with-parser-tools"]{Parsing with @racketmodname[parser-tools/lex]}
 

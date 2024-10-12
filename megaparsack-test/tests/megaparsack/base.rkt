@@ -46,7 +46,7 @@
     (check-equal? (parse-string (or/p (noncommittal/p (string/p "ab"))
                                       (char/p #\a))
                                 "a")
-                  (failure (message (srcloc 'string 1 0 1 1) "end of input" '("b"))))))
+                  (failure (message (srcloc 'string 1 0 1 1) "end of input" '("'b'"))))))
 
 (describe "lookahead/p"
   (it "succeeds without consuming input"
@@ -60,7 +60,7 @@
     (check-equal? (parse-string (do (lookahead/p (string/p "ab"))
                                     (char/p #\a))
                                 "a")
-                  (failure (message (srcloc 'string 1 0 1 1) "end of input" '("b"))))))
+                  (failure (message (srcloc 'string 1 0 1 1) "end of input" '("'b'"))))))
 
 (describe "one-of/p"
   (it "succeeds if any of the provided elements are equal"
