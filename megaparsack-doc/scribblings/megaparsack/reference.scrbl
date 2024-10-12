@@ -538,10 +538,10 @@ Parses a single whitespace character, as determined by @racket[char-whitespace?]
 Parses a sequence of digits as an integer. Does not handle negative numbers or numeric separators.}
 
 @defproc[(string/p [str string?]) (parser/c char? string?)]{
-Parses a sequence of characters that is case-insensitively equal to @racket[str] and returns @racket[str] as its result.}
+Parses a sequence of characters equal to @racket[str] and returns @racket[str] as its result.}
 
 @defproc[(string-ci/p [str string?]) (parser/c char? string?)]{
-Parses a sequence of characters equal to @racket[str] (as determined by
+Parses a sequence of characters case-insensitively equal to @racket[str] (as determined by
 @racket[char-ci=?]) and returns the matched input string as its result.
 
 @(parser-examples
