@@ -382,15 +382,19 @@
 ;; parser annotation (label/p & hidden/p)
 ;; ---------------------------------------------------------------------------------------------------
 
-(define/match* (expect pos-a expected (and message (message* pos-b user? srcloc unexpected _)))
-  (if (= pos-a pos-b)
-      (message* pos-a user? srcloc unexpected (list expected))
-      message))
+(define (expect pos-a expected message)
+  (match message
+    [(message* pos-b user? srcloc unexpected _)
+     #:when (= pos-a pos-b)
+     (message* pos-a user? srcloc unexpected (list expected))]
+    [_ message]))
 
-(define/match* (hide pos-a (and message (message* pos-b user? srcloc unexpected _)))
-  (if (= pos-a pos-b)
-      (message* pos-a user? srcloc unexpected '())
-      message))
+(define (hide pos-a message)
+  (match message
+    [(message* pos-b user? srcloc unexpected _)
+     #:when (= pos-a pos-b)
+     (message* pos-a user? srcloc unexpected '())]
+    [_ message]))
 
 (define (label/p str p)
   (parser

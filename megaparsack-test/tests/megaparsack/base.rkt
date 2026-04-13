@@ -26,6 +26,16 @@
     (check-equal? (parse-string (do (many/p (char/p #\r)) eof/p) "ra")
                   (failure (message (srcloc 'string 1 1 2 1) #\a '("'r'" "end of input"))))))
 
+(describe "label/p"
+  (it "has no effect when a parser succeeds without consuming input"
+    (check-equal? (parse-string (label/p "foo" void/p) "")
+                  (success (void)))))
+
+(describe "hidden/p"
+  (it "has no effect when a parser succeeds without consuming input"
+    (check-equal? (parse-string (hidden/p void/p) "")
+                  (success (void)))))
+
 (describe "fail/p"
   (it "always fails"
     (let* ([loc (srcloc #f #f #f #f #f)]
