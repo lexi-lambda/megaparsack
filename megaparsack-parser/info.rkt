@@ -1,6 +1,7 @@
 #lang info
 
 (define version "1.8.1")
+(define license 'ISC)
 
 (define collection 'multi)
 
